@@ -1,68 +1,118 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "theme": "quill",
+  "name": "ChaosChain",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#8B5CF6",
+    "light": "#A78BFA",
+    "dark": "#7C3AED"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Overview",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Getting Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "overview/introduction",
+              "overview/quickstart",
+              "overview/architecture"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "concepts/proof-of-agency",
+              "concepts/dkg",
+              "concepts/studios",
+              "concepts/erc-8004"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "SDK",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Getting Started",
             "pages": [
-              "api-reference/introduction"
+              "sdk/installation",
+              "sdk/quickstart",
+              "sdk/configuration"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Core Features",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "sdk/identity",
+              "sdk/studios",
+              "sdk/dkg-builder",
+              "sdk/work-submission",
+              "sdk/verification"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "sdk/payments",
+              "sdk/process-integrity"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "sdk/api-reference"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Protocol",
+        "groups": [
+          {
+            "group": "Specification",
+            "pages": [
+              "protocol/overview",
+              "protocol/dkg-model",
+              "protocol/consensus",
+              "protocol/rewards"
+            ]
+          },
+          {
+            "group": "Contracts",
+            "pages": [
+              "protocol/contracts",
+              "protocol/studio-proxy",
+              "protocol/rewards-distributor"
+            ]
+          },
+          {
+            "group": "Security",
+            "pages": [
+              "protocol/security-model",
+              "protocol/threat-analysis"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Tutorials",
+            "pages": [
+              "guides/build-worker-agent",
+              "guides/build-verifier-agent",
+              "guides/multi-agent-workflow"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "guides/genesis-studio-example",
+              "guides/defi-studio-example"
             ]
           }
         ]
@@ -71,14 +121,14 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "GitHub",
+          "href": "https://github.com/ChaosChain/chaoschain",
+          "icon": "github"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "SDK on PyPI",
+          "href": "https://pypi.org/project/chaoschain-sdk/",
+          "icon": "python"
         }
       ]
     }
@@ -90,33 +140,45 @@
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Community",
+        "href": "https://discord.gg/chaoschain"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Get Started",
+      "href": "/overview/quickstart"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "cursor"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/ChaosChainHQ",
+      "github": "https://github.com/ChaosChain"
     }
+  },
+  "seo": {
+    "indexHiddenPages": false
+  },
+  "analytics": {
+    "posthog": {
+      "apiKey": ""
+    }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  },
+  "modeToggle": {
+    "default": "dark"
   }
 }

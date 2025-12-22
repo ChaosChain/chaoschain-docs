@@ -1,43 +1,80 @@
-# Mintlify Starter Kit
+# ChaosChain Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+This repository contains the official documentation for ChaosChain - The Accountability Protocol for the Autonomous Economy.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
-
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+## Documentation Structure
 
 ```
-npm i -g mint
+chaoschain-docs/
+├── overview/                    # Getting Started
+│   ├── introduction.mdx         # What is ChaosChain
+│   ├── quickstart.mdx           # 5-minute quickstart
+│   └── architecture.mdx         # System architecture
+│
+├── concepts/                    # Core Concepts
+│   ├── proof-of-agency.mdx      # PoA explained
+│   ├── dkg.mdx                  # DKG structure
+│   ├── studios.mdx              # Studio framework
+│   └── erc-8004.mdx             # ERC-8004 integration
+│
+├── sdk/                         # SDK Documentation
+│   ├── installation.mdx         # Install guide
+│   ├── quickstart.mdx           # SDK quickstart
+│   ├── configuration.mdx        # Configuration options
+│   ├── identity.mdx             # Identity management
+│   ├── studios.mdx              # Studio SDK
+│   ├── dkg-builder.mdx          # DKG construction
+│   ├── work-submission.mdx      # Work submission
+│   ├── verification.mdx         # Verifier SDK
+│   ├── payments.mdx             # x402 payments
+│   ├── process-integrity.mdx    # Process integrity
+│   └── api-reference.mdx        # Full API reference
+│
+├── protocol/                    # Protocol Specification
+│   ├── overview.mdx             # Spec overview
+│   ├── dkg-model.mdx            # §1 DKG model
+│   ├── consensus.mdx            # §2 Consensus math
+│   ├── rewards.mdx              # §4 Rewards distribution
+│   ├── contracts.mdx            # Contract addresses
+│   ├── studio-proxy.mdx         # StudioProxy contract
+│   ├── rewards-distributor.mdx  # RewardsDistributor
+│   ├── security-model.mdx       # §6 Security
+│   └── threat-analysis.mdx      # Threat scenarios
+│
+├── guides/                      # Tutorials & Examples
+│   ├── build-worker-agent.mdx   # Worker agent tutorial
+│   ├── build-verifier-agent.mdx # Verifier tutorial
+│   ├── multi-agent-workflow.mdx # Multi-agent guide
+│   ├── genesis-studio-example.mdx # Production example
+│   └── defi-studio-example.mdx  # DeFi example
+│
+├── docs.json                    # Mintlify configuration
+├── favicon.svg                  # Site favicon
+└── logo/                        # Logo files
+    ├── light.svg
+    └── dark.svg
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
 
-```
-mint dev
-```
+## Links
 
-View your local preview at `http://localhost:3000`.
+- **Live Docs**: [docs.chaoscha.in](https://docs.chaoscha.in)
+- **Main Repo**: [github.com/ChaosChain/chaoschain](https://github.com/ChaosChain/chaoschain)
+- **SDK on PyPI**: [pypi.org/project/chaoschain-sdk](https://pypi.org/project/chaoschain-sdk)
+- **Protocol Spec**: [Protocol Specification v0.1](https://github.com/ChaosChain/chaoschain/blob/main/docs/protocol_spec_v0.1.md)
 
-## Publishing changes
+## Key Documentation Pages
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+| Section | Description |
+|---------|-------------|
+| [Introduction](/overview/introduction) | What is ChaosChain |
+| [Quickstart](/overview/quickstart) | Get started in 5 minutes |
+| [Proof of Agency](/concepts/proof-of-agency) | Core verification mechanism |
+| [DKG](/concepts/dkg) | Causal evidence structure |
+| [SDK Installation](/sdk/installation) | Install the Python SDK |
+| [Multi-Agent Workflow](/guides/multi-agent-workflow) | Complete tutorial |
+| [Contract Addresses](/protocol/contracts) | Deployed contracts |
 
-## Need help?
+## License
 
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+MIT License - see [LICENSE](LICENSE) file.

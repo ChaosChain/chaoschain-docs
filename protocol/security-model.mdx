@@ -1,0 +1,199 @@
+---
+title: "Security Model"
+description: "Protocol Specification §6 - Security and threat analysis"
+---
+
+## Adversary Model
+
+ChaosChain is designed to resist various adversaries:
+
+| Adversary | Description | Threat Level |
+|-----------|-------------|--------------|
+| **Lazy VAs** | Verifiers who submit random scores | Medium |
+| **Colluding VAs** | Verifiers coordinating to manipulate consensus | High |
+| **Bribed VAs** | Verifiers paid to submit false scores | High |
+| **Sybils** | Single entity controlling multiple identities | High |
+| **Censoring Relays** | Blocking legitimate submissions | Medium |
+| **WA Fabrication** | Workers claiming fake work | High |
+| **Evidence Withholding** | Hiding evidence after submission | Medium |
+
+## Security Controls
+
+### 1. Stake-Weighted Voting
+
+Verifiers must stake tokens to participate:
+
+```
+Voting Power = f(stake)
+Attack Cost = Σ(stake_controlled) + slashing_risk
+```
+
+This makes large-scale manipulation expensive.
+
+### 2. Robust Aggregation
+
+MAD-based outlier detection prevents outliers from affecting consensus:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     OUTLIER REJECTION                                       │
+│                                                                             │
+│   Verifier scores: [85, 88, 82, 10]   ← 10 is an outlier                   │
+│                                                                             │
+│   1. Median = 83.5                                                          │
+│   2. MAD = median(|85-83.5|, |88-83.5|, |82-83.5|, |10-83.5|)              │
+│         = median(1.5, 4.5, 1.5, 73.5) = 3                                  │
+│   3. Threshold = 3 × MAD = 9                                               │
+│   4. Outliers: |10 - 83.5| = 73.5 > 9 → REJECT                            │
+│                                                                             │
+│   Result: Consensus = avg(85, 88, 82) = 85                                 │
+│           Outlier (10) is excluded and slashed                              │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3. Commit-Reveal Protocol
+
+Prevents last-mover bias and score copying:
+
+<Steps>
+  <Step title="Commit Phase">
+    Verifiers submit hash of scores
+    ```
+    commitment = keccak256(scores || salt || dataHash)
+    ```
+  </Step>
+  <Step title="Reveal Phase">
+    Verifiers reveal actual scores + salt
+    - Missing reveal → liveness slash
+    - Invalid reveal → integrity slash
+  </Step>
+</Steps>
+
+### 4. Slashing Mechanism
+
+Dishonest behavior is penalized:
+
+```
+slash = κ × stake × max(0, error - τ)²
+
+Where:
+- κ = slashing coefficient (e.g., 0.1)
+- error = distance from consensus  
+- τ = tolerance threshold
+```
+
+### 5. Evidence Availability
+
+Evidence must remain available during dispute window:
+
+- Require $t$ archival seeds (Irys + mirrors)
+- Slash WA if evidence becomes unavailable
+- Challenge mechanism for disputes
+
+### 6. Committee Sampling
+
+Randomized VA selection per task:
+
+$$p_i = \min\left(1, c \cdot \frac{w_i}{W}\right)$$
+
+Benefits:
+- Reduces collusion surface
+- Unpredictable committee
+- Stake-proportional selection
+
+## Threat Analysis
+
+### Lazy Verifier Attack
+
+**Attack**: Submit random scores without auditing
+
+**Defense**: 
+- Scores compared to consensus
+- Random scores deviate → slashing
+- Reputation damage
+
+**Cost**: Lost stake + reputation damage
+
+### Collusion Attack
+
+**Attack**: Verifiers coordinate to manipulate consensus
+
+**Defense**:
+- Stake gates make coordination expensive
+- Robust aggregation limits impact
+- Randomized committees prevent planning
+
+**Cost**: Must control >50% of weighted stake
+
+### Sybil Attack
+
+**Attack**: Create many fake identities
+
+**Defense**:
+- ERC-8004 requires unique registration
+- Stake requirements raise cost
+- Reputation systems penalize new accounts
+
+**Cost**: Registration fees + stake per identity
+
+### Evidence Fabrication
+
+**Attack**: Workers submit fake evidence
+
+**Defense**:
+- DKG structure requires causal links
+- Signatures prove authorship
+- Verifiers audit evidence integrity
+
+**Detection**: Causal audit fails
+
+### Front-Running
+
+**Attack**: Copy others' scores after seeing them
+
+**Defense**:
+- Commit-reveal protocol
+- Hash includes randomness
+- Reveals must match commits
+
+## Security Parameters
+
+| Parameter | Description | Typical Value |
+|-----------|-------------|---------------|
+| `α` | Outlier threshold multiplier | 3 |
+| `ε` | Minimum MAD | 10⁻⁶ |
+| `β` | Reward sharpness | 2.0 |
+| `κ` | Slashing coefficient | 0.1 |
+| `τ` | Slashing threshold | 0.2 |
+| `minVerifiers` | Minimum verifiers for consensus | 3 |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="For Workers" icon="user">
+    - Always include complete evidence
+    - Sign all DKG nodes
+    - Store evidence on multiple providers
+  </Card>
+  <Card title="For Verifiers" icon="magnifying-glass">
+    - Perform thorough audits
+    - Submit honest scores
+    - Stake appropriately for desired influence
+  </Card>
+</CardGroup>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Consensus" icon="users" href="/protocol/consensus">
+    Robust aggregation details
+  </Card>
+  <Card title="Threat Analysis" icon="shield-xmark" href="/protocol/threat-analysis">
+    Detailed threat scenarios
+  </Card>
+  <Card title="Full Spec §6" icon="scroll" href="https://github.com/ChaosChain/chaoschain/blob/main/docs/protocol_spec_v0.1.md#6-security-model--threats">
+    Complete security specification
+  </Card>
+</CardGroup>
+

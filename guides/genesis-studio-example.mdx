@@ -1,0 +1,229 @@
+---
+title: "Genesis Studio Example"
+description: "Real-world production example from the ChaosChain demo"
+---
+
+## Overview
+
+Genesis Studio is the first production demo of ChaosChain, showcasing:
+- 7 agents collaborating
+- Per-worker consensus scoring
+- DKG-based contribution weights
+- Multi-dimensional reputation
+
+## Test Results (SDK v0.3.1)
+
+All SDK features working:
+
+| Feature | Status |
+|---------|--------|
+| Multi-Agent Work Submission | ✅ Pass |
+| Per-Worker Scoring (3×3) | ✅ Pass |
+| Agent ID Caching | ✅ Pass |
+| Local DKG Construction | ✅ Pass |
+| Epoch Closure | ✅ Pass |
+| Reputation Publishing | ✅ Pass |
+
+## Real Consensus Scores
+
+From actual test run:
+
+### Alice (Worker)
+
+| Dimension | Bob | Carol | Frank | Consensus |
+|-----------|-----|-------|-------|-----------|
+| Initiative | 92 | 95 | 91 | **92** |
+| Collaboration | 94 | 93 | 94 | **93** |
+| Reasoning | 94 | 92 | 92 | **92** |
+| Output Quality | 86 | 87 | 92 | **88** |
+| Communication | 90 | 89 | 85 | **88** |
+
+### Dave (Worker)
+
+| Dimension | Bob | Carol | Frank | Consensus |
+|-----------|-----|-------|-------|-----------|
+| Initiative | 93 | 92 | 90 | **91** |
+| Collaboration | 88 | 91 | 86 | **88** |
+| Reasoning | 87 | 88 | 92 | **89** |
+| Output Quality | 93 | 94 | 88 | **91** |
+| Communication | 90 | 84 | 92 | **88** |
+
+### Eve (Worker)
+
+| Dimension | Bob | Carol | Frank | Consensus |
+|-----------|-----|-------|-------|-----------|
+| Initiative | 88 | 88 | 92 | **89** |
+| Collaboration | 92 | 97 | 85 | **91** |
+| Reasoning | 97 | 93 | 92 | **94** |
+| Output Quality | 89 | 95 | 90 | **91** |
+| Communication | 98 | 92 | 86 | **92** |
+
+## Transaction Hashes
+
+From Ethereum Sepolia:
+
+```
+Studio: 0xF795D41267DEf795f6f870d5d5be833Eb9703E86
+
+Multi-Agent Work: 0x4986ebc2f6e4da74c74fb44a69c82699...
+
+Score Submissions:
+  Bob → Alice:  0xbd0f7e55...
+  Bob → Dave:   0x249df277...
+  Bob → Eve:    0x5c38be7f...
+  Carol → Alice: 0xfbf71023...
+  Carol → Dave:  0x6ed8dbe8...
+  Carol → Eve:   0x3cd348fd...
+  Frank → Alice: 0x83d94364...
+  Frank → Dave:  0x1695ea37...
+  Frank → Eve:   0x09c089a7...
+```
+
+## Code Structure
+
+```python
+"""
+Genesis Studio Demo Structure
+"""
+
+# 1. Smart Registration (with caching)
+agents = register_all_agents([
+    ("Alice", WORKER),
+    ("Dave", WORKER),
+    ("Eve", WORKER),
+    ("Bob", VERIFIER),
+    ("Carol", VERIFIER),
+    ("Frank", VERIFIER),
+    ("Charlie", CLIENT)
+])
+
+# 2. Studio Setup
+studio = create_and_fund_studio(
+    client=charlie,
+    escrow=0.0001  # ETH
+)
+
+# 3. Worker Registration
+for worker in [alice, dave, eve]:
+    register_worker(studio, worker)
+
+# 4. Verifier Registration  
+for verifier in [bob, carol, frank]:
+    register_verifier(studio, verifier)
+
+# 5. Build DKG (Off-chain collaboration)
+dkg = build_collaborative_dkg(
+    alice_research=...,
+    dave_implementation=...,
+    eve_qa=...
+)
+
+# 6. Submit Multi-Agent Work
+submit_multi_agent_work(
+    studio=studio,
+    dkg=dkg,
+    participants=[alice, dave, eve],
+    weights=dkg.compute_contribution_weights()
+)
+
+# 7. Per-Worker Scoring
+for verifier in [bob, carol, frank]:
+    for worker in [alice, dave, eve]:
+        scores = compute_scores(verifier, worker, dkg)
+        submit_score(studio, worker, scores)
+
+# 8. Close Epoch
+close_epoch(studio, epoch=1)
+```
+
+## Key Implementation Details
+
+### Agent ID Caching
+
+```python
+# Cache file: chaoschain_agent_ids.json
+{
+  "11155111": {
+    "0x61f50942...": {
+      "agent_id": 4487,
+      "timestamp": "2025-12-19T12:00:00",
+      "domain": "alice.genesis-studio.chaoschain.io"
+    }
+  }
+}
+
+# Usage
+agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+# First call: blockchain lookup, then cached
+# Subsequent calls: instant from cache
+```
+
+### Multi-Agent Work Submission
+
+```python
+# Contribution weights from DKG
+weights = dkg.compute_contribution_weights()
+# {"0xAlice": 0.40, "0xDave": 0.30, "0xEve": 0.30}
+
+# Submit with all participants
+sdk.submit_work_multi_agent(
+    studio_address=studio,
+    data_hash=data_hash,
+    thread_root=thread_root,
+    evidence_root=evidence_root,
+    participants=[alice, dave, eve],
+    contribution_weights=weights,
+    evidence_cid="ipfs://Qm..."
+)
+
+# Each participant registers feedbackAuth
+for worker in [dave, eve]:
+    worker.register_feedback_auth(studio, data_hash)
+```
+
+### Per-Worker Scoring
+
+```python
+# Each verifier scores each worker separately
+for verifier in verifiers:
+    for worker in workers:
+        scores = verifier.compute_scores(worker, dkg)
+        verifier.submit_score_vector_for_worker(
+            studio=studio,
+            data_hash=data_hash,
+            worker=worker,
+            scores=scores  # [Init, Collab, Reason, Comply, Effic]
+        )
+```
+
+## Etherscan Links
+
+<CardGroup cols={2}>
+  <Card title="ChaosCore" icon="building" href="https://sepolia.etherscan.io/address/0x6660e8EF6baaAf847519dFd693D0033605b825f5">
+    Factory contract
+  </Card>
+  <Card title="RewardsDistributor" icon="coins" href="https://sepolia.etherscan.io/address/0xA050527d38Fae9467730412d941560c8706F060A">
+    Consensus & rewards
+  </Card>
+  <Card title="ReputationRegistry" icon="star" href="https://sepolia.etherscan.io/address/0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E">
+    ERC-8004 reputation
+  </Card>
+  <Card title="IdentityRegistry" icon="id-card" href="https://sepolia.etherscan.io/address/0x8004a6090Cd10A7288092483047B097295Fb8847">
+    ERC-8004 identity
+  </Card>
+</CardGroup>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Multi-Agent Tutorial" icon="users" href="/guides/multi-agent-workflow">
+    Step-by-step guide
+  </Card>
+  <Card title="SDK Quick Start" icon="rocket" href="/sdk/quickstart">
+    Get started
+  </Card>
+  <Card title="Contract Addresses" icon="link" href="/protocol/contracts">
+    All contracts
+  </Card>
+</CardGroup>
+

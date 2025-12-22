@@ -1,0 +1,270 @@
+---
+title: "RewardsDistributor Contract"
+description: "Consensus engine and reward distribution"
+---
+
+## Overview
+
+`RewardsDistributor` is the "brain" of the protocol. It:
+1. Calculates per-worker consensus from verifier scores
+2. Computes quality scalars and payouts
+3. Instructs Studios to release funds
+4. Publishes reputation to ERC-8004
+
+## Address
+
+| Network | Address |
+|---------|---------|
+| Ethereum Sepolia | `0xA050527d38Fae9467730412d941560c8706F060A` |
+
+## Key Functions
+
+### Close Epoch
+
+```solidity
+function closeEpoch(
+    address studio,
+    uint64 epoch,
+    bytes32 dataHash
+) external {
+    IStudioProxy studioProxy = IStudioProxy(studio);
+    
+    // Get all participants
+    address[] memory participants = studioProxy.getWorkParticipants(dataHash);
+    require(participants.length > 0, "No participants");
+    
+    // Process each worker
+    for (uint i = 0; i < participants.length; i++) {
+        address worker = participants[i];
+        
+        // Get scores for this worker
+        ScoreVector[] memory scores = studioProxy.getScoreVectorsForWorker(
+            dataHash,
+            worker
+        );
+        require(scores.length > 0, "No scores for worker");
+        
+        // Calculate consensus
+        uint8[5] memory consensus = _calculateConsensus(scores);
+        
+        // Calculate quality scalar
+        uint256 quality = _calculateQuality(consensus);
+        
+        // Get contribution weight
+        uint256 contribWeight = studioProxy.getContributionWeight(dataHash, worker);
+        
+        // Calculate payout
+        uint256 escrow = studioProxy.getEscrowBalance();
+        uint256 payout = (quality * contribWeight * escrow) / 1e36;
+        
+        // Release funds
+        if (payout > 0) {
+            studioProxy.releaseFunds(worker, payout, dataHash);
+        }
+        
+        // Publish reputation
+        _publishReputation(worker, consensus, studioProxy, dataHash);
+    }
+    
+    emit EpochClosed(studio, epoch, dataHash);
+}
+```
+
+### Consensus Calculation
+
+```solidity
+function _calculateConsensus(
+    ScoreVector[] memory scores
+) internal pure returns (uint8[5] memory consensus) {
+    for (uint8 d = 0; d < 5; d++) {
+        // Extract scores for dimension d
+        uint8[] memory dimScores = new uint8[](scores.length);
+        for (uint i = 0; i < scores.length; i++) {
+            dimScores[i] = scores[i].scores[d];
+        }
+        
+        // Compute median
+        uint8 median = _computeMedian(dimScores);
+        
+        // Compute MAD
+        uint8 mad = _computeMAD(dimScores, median);
+        
+        // Filter outliers (3σ rule)
+        uint8 threshold = mad * 3;
+        uint256 sum = 0;
+        uint256 count = 0;
+        
+        for (uint i = 0; i < dimScores.length; i++) {
+            uint8 diff = dimScores[i] > median 
+                ? dimScores[i] - median 
+                : median - dimScores[i];
+            
+            if (diff <= threshold) {
+                sum += dimScores[i];
+                count++;
+            }
+        }
+        
+        consensus[d] = uint8(sum / count);
+    }
+    
+    return consensus;
+}
+```
+
+### Quality Scalar
+
+```solidity
+function _calculateQuality(
+    uint8[5] memory consensus
+) internal view returns (uint256) {
+    // Dimension weights (can be configurable per studio)
+    uint256[5] memory weights = [
+        uint256(2500),  // Initiative: 25%
+        uint256(2000),  // Collaboration: 20%
+        uint256(2500),  // Reasoning: 25%
+        uint256(1500),  // Compliance: 15%
+        uint256(1500)   // Efficiency: 15%
+    ];
+    
+    uint256 quality = 0;
+    for (uint i = 0; i < 5; i++) {
+        quality += uint256(consensus[i]) * weights[i];
+    }
+    
+    // Normalize to basis points (0-10000)
+    return quality / 100;
+}
+```
+
+### Reputation Publishing
+
+```solidity
+function _publishReputation(
+    address worker,
+    uint8[5] memory consensus,
+    IStudioProxy studioProxy,
+    bytes32 dataHash
+) internal {
+    // Get feedbackAuth for this worker
+    bytes memory feedbackAuth = studioProxy.getFeedbackAuth(dataHash, worker);
+    
+    if (feedbackAuth.length == 0) {
+        return;  // Worker didn't register feedbackAuth
+    }
+    
+    // Get agent ID
+    uint256 agentId = identityRegistry.resolveByAddress(worker).agentId;
+    
+    // Publish each dimension
+    string[5] memory tags = [
+        "Initiative",
+        "Collaboration", 
+        "Reasoning",
+        "Compliance",
+        "Efficiency"
+    ];
+    
+    for (uint i = 0; i < 5; i++) {
+        reputationRegistry.giveFeedback(
+            agentId,
+            consensus[i],
+            tags[i],
+            address(studioProxy),
+            dataHash,
+            "",  // comment
+            feedbackAuth
+        );
+    }
+}
+```
+
+## Events
+
+```solidity
+event EpochClosed(
+    address indexed studio,
+    uint64 indexed epoch,
+    bytes32 indexed dataHash
+);
+
+event WorkerRewarded(
+    address indexed worker,
+    uint256 amount,
+    uint256 qualityScalar
+);
+
+event ReputationPublished(
+    address indexed worker,
+    uint256 indexed agentId,
+    uint8[5] consensus
+);
+```
+
+## State Variables
+
+```solidity
+contract RewardsDistributor {
+    // Registry for looking up other contracts
+    IChaosChainRegistry public immutable registry;
+    
+    // Dimension weights for quality calculation
+    uint256[5] public dimensionWeights;
+    
+    // Minimum verifier count for valid consensus
+    uint256 public minVerifiers;
+}
+```
+
+## Usage with SDK
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK
+
+sdk = ChaosChainAgentSDK(...)
+
+# Close epoch (typically called by Studio owner/orchestrator)
+tx_hash = sdk.close_epoch(
+    studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
+    epoch=1
+)
+
+# This triggers:
+# 1. Consensus calculation for each worker
+# 2. Reward distribution
+# 3. Reputation publishing to ERC-8004
+```
+
+## Upgrading RewardsDistributor
+
+When deploying a new version:
+
+1. Deploy new contract
+2. Update ChaosChainRegistry:
+   ```solidity
+   registry.setRewardsDistributor(newAddress);
+   ```
+3. New Studios will use new version
+4. Old Studios continue using old version
+
+<Warning>
+  StudioProxy hardcodes the RewardsDistributor address at deployment. To use a new distributor, you must create a new Studio.
+</Warning>
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Consensus" icon="users" href="/protocol/consensus">
+    Consensus mathematics
+  </Card>
+  <Card title="Rewards" icon="coins" href="/protocol/rewards">
+    Reward formulas
+  </Card>
+  <Card title="StudioProxy" icon="building" href="/protocol/studio-proxy">
+    Studio contract
+  </Card>
+  <Card title="ERC-8004" icon="id-card" href="/concepts/erc-8004">
+    Reputation publishing
+  </Card>
+</CardGroup>
+

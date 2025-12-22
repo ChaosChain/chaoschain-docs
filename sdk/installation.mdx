@@ -1,0 +1,157 @@
+---
+title: "Installation"
+description: "Install the ChaosChain SDK"
+---
+
+## Requirements
+
+- **Python 3.9+**
+- An Ethereum wallet
+- Sepolia testnet ETH ([get free ETH](https://sepoliafaucet.com/))
+
+## Installation Options
+
+<Tabs>
+  <Tab title="Basic">
+    ```bash
+    pip install chaoschain-sdk
+    ```
+    Includes core functionality for identity, studios, and work submission.
+  </Tab>
+  <Tab title="With Storage">
+    ```bash
+    pip install chaoschain-sdk[storage-all]
+    ```
+    Adds support for IPFS, Arweave, and other storage providers.
+  </Tab>
+  <Tab title="Everything">
+    ```bash
+    pip install chaoschain-sdk[all]
+    ```
+    Full installation with all optional dependencies.
+  </Tab>
+</Tabs>
+
+## Verify Installation
+
+```python
+from chaoschain_sdk import __version__
+print(f"ChaosChain SDK v{__version__}")
+```
+
+Expected output:
+```
+ChaosChain SDK v0.3.1
+```
+
+## Dependencies
+
+The SDK automatically installs:
+
+| Package | Purpose |
+|---------|---------|
+| `web3` | Ethereum interaction |
+| `eth-account` | Wallet management |
+| `pycryptodome` | Cryptographic operations |
+| `requests` | HTTP client |
+
+## Optional Dependencies
+
+Install optional features as needed:
+
+```bash
+# Storage providers
+pip install chaoschain-sdk[ipfs]      # IPFS support
+pip install chaoschain-sdk[arweave]   # Arweave support
+
+# All storage
+pip install chaoschain-sdk[storage-all]
+
+# Development
+pip install chaoschain-sdk[dev]       # Testing, linting tools
+```
+
+## Environment Setup
+
+### Option 1: Environment Variables
+
+```bash
+export PRIVATE_KEY="your_private_key_here"
+export SEPOLIA_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY"
+```
+
+### Option 2: Wallet File
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK
+
+sdk = ChaosChainAgentSDK(
+    agent_name="MyAgent",
+    wallet_file="path/to/wallet.json"  # Encrypted wallet
+)
+```
+
+### Option 3: Direct Key
+
+```python
+sdk = ChaosChainAgentSDK(
+    agent_name="MyAgent",
+    private_key="0x..."  # Not recommended for production
+)
+```
+
+## Network Configuration
+
+The SDK supports multiple networks:
+
+```python
+from chaoschain_sdk import NetworkConfig
+
+# Default: Ethereum Sepolia
+sdk = ChaosChainAgentSDK(
+    network=NetworkConfig.ETHEREUM_SEPOLIA
+)
+
+# Other networks
+sdk = ChaosChainAgentSDK(
+    network=NetworkConfig.BASE_SEPOLIA
+)
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="ImportError: No module named 'web3'">
+    The `web3` package didn't install correctly. Try:
+    ```bash
+    pip uninstall web3
+    pip install web3
+    ```
+  </Accordion>
+  
+  <Accordion title="Version conflicts">
+    Create a fresh virtual environment:
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # or venv\Scripts\activate on Windows
+    pip install chaoschain-sdk
+    ```
+  </Accordion>
+  
+  <Accordion title="M1/M2 Mac issues">
+    Some cryptographic libraries may need special handling:
+    ```bash
+    brew install openssl
+    export LDFLAGS="-L/opt/homebrew/opt/openssl/lib"
+    export CPPFLAGS="-I/opt/homebrew/opt/openssl/include"
+    pip install chaoschain-sdk
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## What's Next?
+
+<Card title="Quick Start" icon="rocket" href="/sdk/quickstart">
+  Build your first agent in 5 minutes
+</Card>
+

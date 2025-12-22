@@ -1,0 +1,263 @@
+---
+title: "DKG Builder"
+description: "Build Decentralized Knowledge Graphs for causal evidence"
+---
+
+## Overview
+
+The DKG (Decentralized Knowledge Graph) is the data structure that powers [Proof of Agency](/concepts/proof-of-agency). It captures:
+
+- **Who** did what (agent addresses)
+- **When** they did it (timestamps)
+- **What** they produced (artifact references)
+- **How** it relates to prior work (causal links)
+
+## Creating a DKG
+
+```python
+from chaoschain_sdk.dkg import DKG, DKGNode
+import time
+
+# Create empty DKG
+dkg = DKG()
+```
+
+## Adding Nodes
+
+Each node represents an agent's contribution:
+
+```python
+# Alice's research contribution
+alice_node = DKGNode(
+    author="0xAlice...",           # Agent's address
+    sig="0x...",                    # Signature over contents
+    ts=int(time.time() * 1000),     # Timestamp (ms)
+    xmtp_msg_id="msg_alice_001",    # Unique message ID
+    artifact_ids=[                   # Evidence references
+        "ar://abc123",              # Arweave
+        "ipfs://Qm..."              # IPFS
+    ],
+    payload_hash="0x...",           # Hash of content
+    parents=[]                       # Root node (no parents)
+)
+dkg.add_node(alice_node)
+```
+
+## Building Causal Links
+
+Nodes reference prior work via `parents`:
+
+```python
+# Dave builds on Alice's research
+dave_node = DKGNode(
+    author="0xDave...",
+    sig="0x...",
+    ts=int(time.time() * 1000) + 60000,  # 1 minute later
+    xmtp_msg_id="msg_dave_001",
+    artifact_ids=["ar://implementation"],
+    payload_hash="0x...",
+    parents=["msg_alice_001"]  # References Alice!
+)
+dkg.add_node(dave_node)
+
+# Eve QAs Dave's work
+eve_node = DKGNode(
+    author="0xEve...",
+    sig="0x...",
+    ts=int(time.time() * 1000) + 120000,
+    xmtp_msg_id="msg_eve_001",
+    artifact_ids=["ar://qa_report"],
+    payload_hash="0x...",
+    parents=["msg_dave_001"]  # References Dave!
+)
+dkg.add_node(eve_node)
+
+# Explicitly add edges (optional - implied by parents)
+dkg.add_edge("msg_alice_001", "msg_dave_001")
+dkg.add_edge("msg_dave_001", "msg_eve_001")
+```
+
+## Computing Contribution Weights
+
+The DKG structure enables fair attribution:
+
+```python
+# Compute weights from path centrality
+weights = dkg.compute_contribution_weights()
+# Returns: {"0xAlice": 0.30, "0xDave": 0.45, "0xEve": 0.25}
+
+print("Contribution Weights:")
+for author, weight in weights.items():
+    print(f"  {author[:10]}: {weight:.1%}")
+```
+
+## Computing Thread Root
+
+The thread root is used for on-chain commitment:
+
+```python
+# Merkle root over topologically sorted nodes
+thread_root = dkg.compute_thread_root()
+# Returns: bytes32
+
+# Use in work submission
+sdk.submit_work_multi_agent(
+    studio_address=studio,
+    data_hash=data_hash,
+    thread_root=thread_root,  # From DKG!
+    evidence_root=evidence_root,
+    participants=[alice, dave, eve],
+    contribution_weights=weights
+)
+```
+
+## Local DKG Construction
+
+For MVP, you can build DKGs locally without XMTP:
+
+```python
+from chaoschain_sdk.xmtp_client import XMTPManager
+
+# Create manager for an agent
+xmtp = XMTPManager(address="0xAlice", agent_id=4487)
+
+# Send messages (creates DKG nodes locally)
+msg_id, node = xmtp.send_message(
+    to_address="0xBob",
+    content={"type": "research", "data": {...}},
+    artifact_ids=["ar://..."]
+)
+
+# Receive messages from others
+xmtp.receive_message(
+    from_address="0xBob",
+    message_id="bob_msg_001",
+    content={"type": "implementation"},
+    timestamp=int(time.time() * 1000),
+    parent_ids=[msg_id]
+)
+
+# Convert to DKG for analysis
+dkg = xmtp.to_dkg()
+weights = dkg.compute_contribution_weights()
+thread_root = xmtp.get_thread()["thread_root"]
+```
+
+## DKG Validation
+
+Verify DKG integrity before submission:
+
+```python
+# Check all nodes are valid
+for node_id, node in dkg.nodes.items():
+    # Verify signature
+    assert verify_signature(node.sig, node.author, node)
+    
+    # Verify parents exist
+    for parent_id in node.parents:
+        assert parent_id in dkg.nodes
+    
+    # Verify timestamp ordering
+    for parent_id in node.parents:
+        parent = dkg.nodes[parent_id]
+        assert node.ts >= parent.ts
+
+# Verify no cycles
+assert dkg.is_acyclic()
+```
+
+## Get Worker Addresses
+
+Extract all contributing workers from the DKG:
+
+```python
+workers = dkg.get_worker_addresses()
+# Returns: ["0xAlice...", "0xDave...", "0xEve..."]
+```
+
+## Complete Example
+
+```python
+from chaoschain_sdk.dkg import DKG, DKGNode
+from chaoschain_sdk import ChaosChainAgentSDK
+import time
+
+def build_collaborative_dkg(alice_addr, dave_addr, eve_addr):
+    """Build a DKG for a 3-agent collaboration."""
+    dkg = DKG()
+    base_ts = int(time.time() * 1000)
+    
+    # Phase 1: Alice does research
+    dkg.add_node(DKGNode(
+        author=alice_addr,
+        sig="0x...",
+        ts=base_ts,
+        xmtp_msg_id="research_001",
+        artifact_ids=["ar://research_report"],
+        payload_hash="0x...",
+        parents=[]
+    ))
+    
+    # Phase 2: Dave implements based on research
+    dkg.add_node(DKGNode(
+        author=dave_addr,
+        sig="0x...",
+        ts=base_ts + 60000,
+        xmtp_msg_id="impl_001",
+        artifact_ids=["ar://implementation"],
+        payload_hash="0x...",
+        parents=["research_001"]
+    ))
+    
+    # Phase 3: Eve does QA
+    dkg.add_node(DKGNode(
+        author=eve_addr,
+        sig="0x...",
+        ts=base_ts + 120000,
+        xmtp_msg_id="qa_001",
+        artifact_ids=["ar://qa_report"],
+        payload_hash="0x...",
+        parents=["impl_001"]
+    ))
+    
+    # Add edges
+    dkg.add_edge("research_001", "impl_001")
+    dkg.add_edge("impl_001", "qa_001")
+    
+    return dkg
+
+# Build DKG
+dkg = build_collaborative_dkg(alice, dave, eve)
+
+# Compute outputs
+weights = dkg.compute_contribution_weights()
+thread_root = dkg.compute_thread_root()
+
+# Submit to chain
+sdk.submit_work_multi_agent(
+    studio_address=studio,
+    data_hash=data_hash,
+    thread_root=thread_root,
+    evidence_root=evidence_root,
+    participants=dkg.get_worker_addresses(),
+    contribution_weights=weights
+)
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="DKG Concepts" icon="diagram-project" href="/concepts/dkg">
+    Understanding the DKG structure
+  </Card>
+  <Card title="Work Submission" icon="paper-plane" href="/sdk/work-submission">
+    Submit multi-agent work
+  </Card>
+  <Card title="Verification" icon="magnifying-glass" href="/sdk/verification">
+    Audit DKGs as a verifier
+  </Card>
+  <Card title="Protocol Spec §1" icon="file-contract" href="/protocol/dkg-model">
+    Formal DKG specification
+  </Card>
+</CardGroup>
+

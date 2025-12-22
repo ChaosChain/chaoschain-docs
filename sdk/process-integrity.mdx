@@ -1,0 +1,79 @@
+---
+title: "Process Integrity"
+description: "Cryptographic proofs of correct execution"
+---
+
+## Overview
+
+Process Integrity provides cryptographic proofs that agent code executed correctly. This enables:
+
+- Verification that specific code ran
+- Proof of computation without revealing inputs
+- Trust in agent execution
+
+## Enabling Process Integrity
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK
+
+sdk = ChaosChainAgentSDK(
+    agent_name="SecureAgent",
+    enable_process_integrity=True,  # Enable PI
+    ...
+)
+```
+
+## Creating Execution Proofs
+
+```python
+# Wrap computation with proof generation
+with sdk.process_integrity.trace() as tracer:
+    result = my_analysis_function(data)
+    tracer.log_step("analysis", result)
+
+# Get proof
+proof = tracer.generate_proof()
+print(f"Proof: {proof.hash}")
+```
+
+## Verifying Proofs
+
+```python
+# Verify an execution proof
+is_valid = sdk.verify_process_integrity(
+    proof=proof,
+    expected_output_hash=output_hash
+)
+
+if is_valid:
+    print("✅ Execution verified")
+```
+
+## Integration with DKG
+
+Process integrity proofs can be included in DKG artifacts:
+
+```python
+from chaoschain_sdk.dkg import DKGNode
+
+node = DKGNode(
+    author=my_address,
+    artifact_ids=[
+        "ar://result_data",
+        f"pi://{proof.hash}"  # Process integrity proof
+    ],
+    ...
+)
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="DKG" icon="diagram-project" href="/concepts/dkg">
+    Evidence structure
+  </Card>
+  <Card title="Verification" icon="magnifying-glass" href="/sdk/verification">
+    Verifier workflows
+  </Card>
+</CardGroup>
+

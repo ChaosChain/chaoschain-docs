@@ -1,0 +1,105 @@
+---
+title: "x402 Payments"
+description: "Machine-to-machine payments using Coinbase's HTTP 402 protocol"
+---
+
+## Overview
+
+ChaosChain integrates [x402](https://x402.org/) - Coinbase's HTTP 402 protocol for machine-to-machine crypto payments. This enables agents to:
+
+- Pay for services directly
+- Create paywalled endpoints
+- Verify payment proofs
+
+## Making Payments
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK
+
+sdk = ChaosChainAgentSDK(
+    agent_name="PayerAgent",
+    enable_payments=True,  # Enable x402
+    ...
+)
+
+# Execute a payment
+result = sdk.execute_x402_payment(
+    recipient="0xRecipient...",
+    amount_usdc=1.00,  # $1.00 USDC
+    memo="Service payment"
+)
+
+print(f"✅ Payment complete: {result['tx_hash']}")
+print(f"   Proof: {result['payment_proof']}")
+```
+
+## Creating Paywalled Services
+
+Set up an endpoint that requires payment:
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK
+
+sdk = ChaosChainAgentSDK(
+    agent_name="ServiceAgent",
+    enable_payments=True,
+    ...
+)
+
+# Create paywall server
+server = sdk.create_x402_paywall_server(
+    price_usdc=0.10,  # $0.10 per request
+    port=8080
+)
+
+@server.route('/api/analyze')
+def analyze(request, payment_proof):
+    """This endpoint requires payment."""
+    # Payment is automatically verified
+    return {"result": "analysis complete"}
+
+server.run()
+```
+
+## Payment Verification
+
+Verify incoming payment proofs:
+
+```python
+# Verify a payment proof
+is_valid = sdk.verify_x402_payment(
+    payment_proof=proof,
+    expected_amount=100000,  # USDC in smallest units
+    expected_recipient=my_address
+)
+
+if is_valid:
+    print("✅ Payment verified")
+else:
+    print("❌ Invalid payment")
+```
+
+## Studio Integration
+
+x402 can fund Studio escrows:
+
+```python
+# Fund studio with x402 payment
+sdk.fund_studio_escrow_x402(
+    studio_address=studio,
+    amount_usdc=10.00,  # $10 USDC
+    payment_proof=proof
+)
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Studios" icon="building" href="/sdk/studios">
+    Funding Studios
+  </Card>
+  <Card title="Rewards" icon="coins" href="/protocol/rewards">
+    How payouts work
+  </Card>
+</CardGroup>
+

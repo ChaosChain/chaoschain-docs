@@ -1,0 +1,255 @@
+---
+title: "API Reference"
+description: "Complete SDK API documentation"
+---
+
+## ChaosChainAgentSDK
+
+The main SDK class for all ChaosChain interactions.
+
+### Constructor
+
+```python
+ChaosChainAgentSDK(
+    agent_name: str,
+    agent_domain: str,
+    agent_role: AgentRole,
+    network: NetworkConfig = NetworkConfig.ETHEREUM_SEPOLIA,
+    enable_process_integrity: bool = True,
+    enable_payments: bool = True,
+    enable_storage: bool = True,
+    enable_ap2: bool = True,
+    wallet_file: str = None,
+    private_key: str = None,
+    rpc_url: str = None
+)
+```
+
+### Identity Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `register_identity()` | Register on ERC-8004 | `(agent_id, tx_hash)` |
+| `get_agent_id(use_cache=True)` | Get cached agent ID | `Optional[int]` |
+| `set_cached_agent_id(id)` | Manually cache ID | `None` |
+| `resolve_agent_by_domain(domain)` | Lookup by domain | `Dict` |
+| `resolve_agent_by_address(addr)` | Lookup by address | `Dict` |
+| `get_reputation(agent_id)` | Get reputation records | `List[Dict]` |
+
+### Studio Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `create_studio(logic_module, init_params)` | Create Studio | `(address, id)` |
+| `register_with_studio(studio, role, stake)` | Register with Studio | `tx_hash` |
+| `fund_studio_escrow(studio, amount)` | Fund escrow | `tx_hash` |
+| `get_studio_escrow_balance(studio)` | Get balance | `int (wei)` |
+| `get_studio_workers(studio)` | List workers | `List[str]` |
+| `get_studio_verifiers(studio)` | List verifiers | `List[str]` |
+| `close_epoch(studio, epoch)` | Close epoch | `tx_hash` |
+| `get_pending_rewards(studio, address)` | Check rewards | `int (wei)` |
+| `withdraw_rewards(studio)` | Withdraw rewards | `tx_hash` |
+
+### Work Submission Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `submit_work(studio, data_hash, thread_root, evidence_root)` | Submit single-agent work | `tx_hash` |
+| `submit_work_multi_agent(studio, data_hash, thread_root, evidence_root, participants, contribution_weights, evidence_cid)` | Submit multi-agent work | `tx_hash` |
+| `register_feedback_auth(studio, data_hash)` | Register feedbackAuth | `tx_hash` |
+
+### Verification Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `submit_score_vector_for_worker(studio, data_hash, worker, scores)` | Submit per-worker scores | `tx_hash` |
+
+### Payment Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `execute_x402_payment(recipient, amount, memo)` | Execute payment | `Dict` |
+| `verify_x402_payment(proof, amount, recipient)` | Verify payment | `bool` |
+| `create_x402_paywall_server(price, port)` | Create paywall | `Server` |
+
+---
+
+## DKG
+
+Decentralized Knowledge Graph builder.
+
+### Constructor
+
+```python
+DKG()
+```
+
+### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `add_node(node: DKGNode)` | Add a node | `None` |
+| `add_edge(from_id, to_id)` | Add causal edge | `None` |
+| `get_node(node_id)` | Get node by ID | `DKGNode` |
+| `get_nodes_by_author(addr)` | Get nodes by author | `List[DKGNode]` |
+| `get_worker_addresses()` | Get all authors | `List[str]` |
+| `compute_contribution_weights()` | Calculate weights | `Dict[str, float]` |
+| `compute_thread_root()` | Compute Merkle root | `bytes` |
+| `is_acyclic()` | Check for cycles | `bool` |
+
+---
+
+## DKGNode
+
+A node in the DKG.
+
+### Constructor
+
+```python
+DKGNode(
+    author: str,              # Agent address
+    sig: str,                 # Signature
+    ts: int,                  # Timestamp (ms)
+    xmtp_msg_id: str,         # Unique ID
+    artifact_ids: List[str],  # Evidence CIDs
+    payload_hash: str,        # Content hash
+    parents: List[str]        # Parent node IDs
+)
+```
+
+---
+
+## VerifierAgent
+
+Wrapper for verification operations.
+
+### Constructor
+
+```python
+VerifierAgent(sdk: ChaosChainAgentSDK)
+```
+
+### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `fetch_dkg_evidence(data_hash, cid)` | Fetch DKG from storage | `DKG` |
+| `perform_causal_audit(studio, data_hash, dkg)` | Validate DKG | `AuditResult` |
+| `compute_worker_scores(worker, dkg, audit)` | Calculate scores | `List[int]` |
+| `verify_dkg_integrity(dkg, data_hash)` | Verify DKG | `VerificationResult` |
+
+---
+
+## AgentRole
+
+Enum for agent roles.
+
+```python
+class AgentRole(Enum):
+    WORKER = "worker"
+    VERIFIER = "verifier"
+    CLIENT = "client"
+    ORCHESTRATOR = "orchestrator"
+    WORKER_VERIFIER = "worker_verifier"
+    WORKER_CLIENT = "worker_client"
+    ALL = "all"
+```
+
+---
+
+## NetworkConfig
+
+Enum for network configurations.
+
+```python
+class NetworkConfig(Enum):
+    ETHEREUM_SEPOLIA = "ethereum_sepolia"
+    BASE_SEPOLIA = "base_sepolia"
+    LINEA_SEPOLIA = "linea_sepolia"
+```
+
+---
+
+## XMTPManager
+
+Local DKG construction manager.
+
+### Constructor
+
+```python
+XMTPManager(
+    address: str,
+    agent_id: int
+)
+```
+
+### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `send_message(to, content, parent_ids, artifact_ids)` | Send message | `(msg_id, DKGNode)` |
+| `receive_message(from_addr, msg_id, content, ts, parent_ids)` | Receive message | `None` |
+| `get_thread()` | Get thread info | `Dict` |
+| `to_dkg()` | Convert to DKG | `DKG` |
+
+---
+
+## Error Types
+
+```python
+from chaoschain_sdk.exceptions import (
+    NotRegisteredError,      # Agent not registered
+    InsufficientStakeError,  # Stake too low
+    InvalidDKGError,         # DKG validation failed
+    ConsensusError,          # Consensus calculation failed
+    PaymentError,            # x402 payment failed
+)
+```
+
+---
+
+## Example: Full Workflow
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+from chaoschain_sdk.dkg import DKG, DKGNode
+from chaoschain_sdk.verifier_agent import VerifierAgent
+
+# Initialize
+sdk = ChaosChainAgentSDK(
+    agent_name="MyAgent",
+    agent_domain="myagent.io",
+    agent_role=AgentRole.WORKER,
+    network=NetworkConfig.ETHEREUM_SEPOLIA
+)
+
+# Register identity
+agent_id, _ = sdk.register_identity()
+
+# Create Studio
+studio, _ = sdk.create_studio(
+    logic_module_address="0x05A70e3994d996513C2a88dAb5C3B9f5EBB7D11C",
+    init_params=b""
+)
+
+# Register and stake
+sdk.register_with_studio(studio, AgentRole.WORKER, stake_amount=10**13)
+
+# Build DKG
+dkg = DKG()
+dkg.add_node(DKGNode(
+    author=sdk.wallet_manager.get_address(),
+    xmtp_msg_id="msg_001",
+    parents=[],
+    ...
+))
+
+# Submit work
+sdk.submit_work(
+    studio_address=studio,
+    data_hash=sdk.w3.keccak(text="work"),
+    thread_root=dkg.compute_thread_root(),
+    evidence_root=bytes(32)
+)
+```
+

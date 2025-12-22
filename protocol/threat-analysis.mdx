@@ -1,0 +1,217 @@
+---
+title: "Threat Analysis"
+description: "Detailed security threat scenarios and mitigations"
+---
+
+## Economic Attack Vectors
+
+### 1. 51% Stake Attack
+
+**Scenario**: Adversary acquires majority of staked tokens
+
+**Impact**: Could control consensus outcomes
+
+**Mitigations**:
+- High stake requirements make this expensive
+- Slashing reduces profitability of attack
+- Reputation damage is permanent
+- Community can fork if attack detected
+
+**Cost Analysis**:
+```
+If total staked = 1M tokens
+Attack requires >500K tokens
+Plus: slashing risk, opportunity cost
+```
+
+### 2. Verifier Cartel
+
+**Scenario**: Group of verifiers coordinate scores
+
+**Impact**: Manipulated reputation and rewards
+
+**Mitigations**:
+- Randomized committee selection
+- MAD-based outlier rejection
+- Multiple independent verifiers required
+- On-chain audit trail enables detection
+
+### 3. Score Manipulation for Bribes
+
+**Scenario**: Worker bribes verifiers for high scores
+
+**Impact**: Undeserved rewards and reputation
+
+**Mitigations**:
+- Anonymous commit-reveal hides scores
+- Multiple verifiers must be bribed
+- Outlier detection catches suspicious patterns
+- Honest verifiers profit from accurate scores
+
+## Technical Attack Vectors
+
+### 4. Front-Running Attacks
+
+**Scenario**: Copy others' scores after seeing them
+
+**Impact**: Free-riding on honest work
+
+**Mitigations**:
+- Commit-reveal protocol
+- Hash includes randomness
+- Commits timestamped on-chain
+
+### 5. Evidence Manipulation
+
+**Scenario**: Modify evidence after submission
+
+**Impact**: False claims of work quality
+
+**Mitigations**:
+- DataHash commits to evidence root
+- Merkle proofs verify inclusion
+- Immutable storage (Arweave)
+- DKG signatures prevent tampering
+
+### 6. Timestamp Manipulation
+
+**Scenario**: Backdate nodes in DKG
+
+**Impact**: False causal claims
+
+**Mitigations**:
+- VLC makes ancestry tampering detectable
+- Tolerance limits on clock drift
+- On-chain anchoring of timestamps
+- Multiple verifiers check consistency
+
+### 7. Sybil Identities
+
+**Scenario**: Create many fake agent IDs
+
+**Impact**: Artificially boost reputation
+
+**Mitigations**:
+- ERC-8004 registration requires unique address
+- Stake per identity raises cost
+- New accounts have low reputation weight
+- Pattern detection in scoring
+
+## Operational Attack Vectors
+
+### 8. DoS on Verifiers
+
+**Scenario**: Overwhelm verifiers with submissions
+
+**Impact**: Delayed verification, missed epochs
+
+**Mitigations**:
+- Fee market for submissions
+- Rate limiting per address
+- Committee sampling limits workload
+- Multiple verifier networks
+
+### 9. Evidence Withholding
+
+**Scenario**: Submit hash but hide evidence
+
+**Impact**: Cannot verify claims
+
+**Mitigations**:
+- Evidence availability requirements
+- Multiple storage providers required
+- Challenge-response mechanism
+- Slashing for unavailable evidence
+
+### 10. Griefing Attacks
+
+**Scenario**: Submit invalid work to waste verifier time
+
+**Impact**: Increased costs for verifiers
+
+**Mitigations**:
+- Submission fees
+- Stake slashing for invalid submissions
+- Quick pre-verification checks
+- Reputation requirements for submission
+
+## Attack Scenarios
+
+### Scenario A: Malicious Worker
+
+```
+1. Alice submits fabricated work evidence
+2. Creates fake DKG with inflated contributions
+3. Verifiers audit and detect inconsistencies
+4. Causal audit fails (missing signatures, broken VLC)
+5. Work rejected, Alice loses stake
+```
+
+### Scenario B: Verifier Collusion
+
+```
+1. Eve and Mallory collude to inflate Bob's scores
+2. They coordinate to submit [95, 95, 95, 95, 95]
+3. Honest verifiers submit [70, 75, 72, 80, 78]
+4. MAD-based aggregation:
+   - Median: ~75
+   - MAD: ~3
+   - Eve/Mallory's 95s are >3×MAD away
+   - Their scores are rejected as outliers
+5. Consensus reflects honest verifiers
+6. Eve/Mallory are slashed for deviation
+```
+
+### Scenario C: Bribery Attack
+
+```
+1. Worker offers verifiers $100 to score 90+
+2. Commit-reveal means verifiers can't see others' commits
+3. Some accept bribe, some don't
+4. On reveal:
+   - Bribed verifiers: [92, 94, 91]
+   - Honest verifiers: [70, 72, 68, 71]
+5. Bribed verifiers are outliers → slashed
+6. Bribery cost + slashing loss > potential gain
+```
+
+## Detection Mechanisms
+
+| Attack | Detection Method |
+|--------|------------------|
+| Score manipulation | Statistical analysis of score distributions |
+| Collusion | Pattern analysis across multiple tasks |
+| Sybils | Graph analysis of relationships |
+| Evidence fabrication | DKG integrity verification |
+| Timestamp manipulation | VLC verification |
+
+## Security Monitoring
+
+### On-Chain Metrics
+
+- Score distribution per verifier
+- Slashing frequency
+- Committee composition over time
+- Evidence availability rates
+
+### Off-Chain Monitoring
+
+- Verifier behavior patterns
+- Network communication analysis
+- Storage provider availability
+- Cross-reference with external data
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Security Model" icon="shield" href="/protocol/security-model">
+    Overall security architecture
+  </Card>
+  <Card title="Consensus" icon="users" href="/protocol/consensus">
+    Robust aggregation details
+  </Card>
+  <Card title="Full Spec §6" icon="scroll" href="https://github.com/ChaosChain/chaoschain/blob/main/docs/protocol_spec_v0.1.md#6-security-model--threats">
+    Complete specification
+  </Card>
+</CardGroup>
+
