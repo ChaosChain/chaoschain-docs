@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "quill",
+  "theme": "maple",
   "name": "ChaosChain",
   "colors": {
     "primary": "#8B5CF6",
@@ -147,7 +147,7 @@
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "/overview/quickstart"
+      "href": "https://docs.chaoscha.in/overview/quickstart"
     }
   },
   "contextual": {
@@ -161,7 +161,7 @@
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/ChaosChainHQ",
+      "x": "https://x.com/Ch40sChain",
       "github": "https://github.com/ChaosChain"
     }
   },
