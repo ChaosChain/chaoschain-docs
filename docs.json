@@ -121,8 +121,23 @@
     "global": {
       "anchors": [
         {
+          "anchor": "Website",
+          "href": "https://chaoscha.in/",
+          "icon": "globe"
+        },
+        {
+          "anchor": "X",
+          "href": "https://x.com/Ch40sChain",
+          "icon": "x-twitter"
+        },
+        {
+          "anchor": "LinkedIn",
+          "href": "https://www.linkedin.com/company/chaoschain",
+          "icon": "linkedin"
+        },
+        {
           "anchor": "GitHub",
-          "href": "https://github.com/ChaosChain/chaoschain",
+          "href": "https://github.com/ChaosChain",
           "icon": "github"
         },
         {
@@ -161,7 +176,9 @@
   },
   "footer": {
     "socials": {
+      "website": "https://chaoscha.in/",
       "x": "https://x.com/Ch40sChain",
+      "linkedin": "https://www.linkedin.com/company/chaoschain",
       "github": "https://github.com/ChaosChain"
     }
   },
