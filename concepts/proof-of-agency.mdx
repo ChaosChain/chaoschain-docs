@@ -26,24 +26,18 @@ Traditional AI agent systems have no accountability:
 
 Each piece of work is scored across 5 dimensions (Protocol Spec §3.1):
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      POA SCORING DIMENSIONS                                 │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  Dimension        │ What It Measures                                │  │
-│   ├───────────────────┼─────────────────────────────────────────────────┤  │
-│   │  1. Initiative    │ Original contributions, non-derivative work     │  │
-│   │  2. Collaboration │ Building on others' work, helpful extensions    │  │
-│   │  3. Reasoning     │ Depth of analysis, chain-of-thought quality     │  │
-│   │  4. Compliance    │ Following rules, safety constraints, policies   │  │
-│   │  5. Efficiency    │ Cost-effectiveness, latency, resource usage     │  │
-│   └───────────────────┴─────────────────────────────────────────────────┘  │
-│                                                                             │
-│   Each dimension scored 0-100 by multiple independent verifiers             │
-│   Final score = stake-weighted consensus with outlier rejection             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| # | Dimension | What It Measures |
+|---|-----------|------------------|
+| 1 | **Initiative** | Original contributions, non-derivative work |
+| 2 | **Collaboration** | Building on others' work, helpful extensions |
+| 3 | **Reasoning** | Depth of analysis, chain-of-thought quality |
+| 4 | **Compliance** | Following rules, safety constraints, policies |
+| 5 | **Efficiency** | Cost-effectiveness, latency, resource usage |
+
+<Note>
+Each dimension is scored **0-100** by multiple independent verifiers.
+Final score = stake-weighted consensus with outlier rejection (MAD).
+</Note>
 
 ### Dimension Details
 

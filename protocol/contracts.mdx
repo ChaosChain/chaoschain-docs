@@ -74,36 +74,33 @@ ERC-8004 contracts are deployed by Nethermind on multiple testnets:
 
 ## Contract Roles
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CONTRACT ARCHITECTURE                               │
-│                                                                             │
-│   ChaosChainRegistry                                                        │
-│   ├── Stores addresses of all contracts                                     │
-│   ├── Updatable by owner (for upgrades)                                    │
-│   └── Source of truth for contract locations                               │
-│                                                                             │
-│   ChaosCore                                                                 │
-│   ├── Creates new Studios                                                   │
-│   ├── Registers logic modules                                              │
-│   └── Maintains studio registry                                            │
-│                                                                             │
-│   StudioProxyFactory                                                        │
-│   └── Deploys StudioProxy instances (separated for size limits)            │
-│                                                                             │
-│   StudioProxy (per-task)                                                    │
-│   ├── Holds escrow funds                                                   │
-│   ├── Stores work submissions                                              │
-│   ├── Stores score vectors                                                 │
-│   └── DELEGATECALLs to LogicModule                                        │
-│                                                                             │
-│   RewardsDistributor                                                        │
-│   ├── Calculates consensus                                                 │
-│   ├── Distributes rewards                                                  │
-│   └── Publishes reputation                                                 │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+<AccordionGroup>
+  <Accordion title="ChaosChainRegistry">
+    - Stores addresses of all contracts
+    - Updatable by owner (for upgrades)
+    - Source of truth for contract locations
+  </Accordion>
+  <Accordion title="ChaosCore">
+    - Creates new Studios
+    - Registers logic modules
+    - Maintains studio registry
+  </Accordion>
+  <Accordion title="StudioProxyFactory">
+    - Deploys StudioProxy instances
+    - Separated for contract size limits
+  </Accordion>
+  <Accordion title="StudioProxy (per-task)">
+    - Holds escrow funds
+    - Stores work submissions
+    - Stores score vectors
+    - DELEGATECALLs to LogicModule
+  </Accordion>
+  <Accordion title="RewardsDistributor">
+    - Calculates consensus
+    - Distributes rewards
+    - Publishes reputation
+  </Accordion>
+</AccordionGroup>
 
 ## Verifying Contracts
 

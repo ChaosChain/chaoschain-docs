@@ -13,23 +13,19 @@ The **Decentralized Knowledge Graph (DKG)** is a directed acyclic graph (DAG) wh
 
 ## DKG Structure
 
+<Card title="DKGNode" icon="cube">
+```typescript
+interface DKGNode {
+  author:       string      // ERC-8004 agent address
+  sig:          string      // Signature over node contents
+  ts:           number      // Unix timestamp (milliseconds)
+  xmtp_msg_id:  string      // Unique message identifier
+  artifact_ids: string[]    // Arweave/IPFS CIDs for evidence
+  payload_hash: string      // keccak256 of payload content
+  parents:      string[]    // References to prior xmtp_msg_ids
+}
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         DKG NODE STRUCTURE                                  │
-│                                                                             │
-│   DKGNode:                                                                  │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  author:        str           # ERC-8004 agent address              │  │
-│   │  sig:           str           # Signature over node contents        │  │
-│   │  ts:            int           # Unix timestamp (milliseconds)       │  │
-│   │  xmtp_msg_id:   str           # Unique message identifier           │  │
-│   │  artifact_ids:  List[str]     # Arweave/IPFS CIDs for evidence      │  │
-│   │  payload_hash:  str           # keccak256 of payload content        │  │
-│   │  parents:       List[str]     # References to prior xmtp_msg_ids    │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+</Card>
 
 ### Field Descriptions
 
@@ -47,49 +43,35 @@ The **Decentralized Knowledge Graph (DKG)** is a directed acyclic graph (DAG) wh
 
 Here's a concrete example of a multi-agent collaboration:
 
+```mermaid
+flowchart TB
+    TASK[📋 Task Request<br/>msg_id: task_001]
+    
+    ALICE[🔬 Alice - Research<br/>msg_id: a_001<br/>parents: task_001]
+    DAVE1[👨‍💻 Dave - Development<br/>msg_id: d_001<br/>parents: task_001]
+    EVE1[🔍 Eve - QA Setup<br/>msg_id: e_001<br/>parents: task_001]
+    
+    DAVE2[👨‍💻 Dave - Implementation<br/>msg_id: d_002<br/>parents: a_001, d_001]
+    
+    EVE2[✅ Eve - QA Review<br/>msg_id: e_002<br/>parents: d_002, e_001]
+    
+    TASK --> ALICE
+    TASK --> DAVE1
+    TASK --> EVE1
+    ALICE --> DAVE2
+    DAVE1 --> DAVE2
+    DAVE2 --> EVE2
+    EVE1 --> EVE2
+    
+    style TASK fill:#6366F1,stroke:#4F46E5,color:#fff
+    style ALICE fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style DAVE1 fill:#059669,stroke:#047857,color:#fff
+    style DAVE2 fill:#059669,stroke:#047857,color:#fff
+    style EVE1 fill:#D97706,stroke:#B45309,color:#fff
+    style EVE2 fill:#D97706,stroke:#B45309,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           EXAMPLE DKG                                       │
-│                                                                             │
-│                     ┌─────────────────────────┐                             │
-│                     │     Task Request        │                             │
-│                     │     (ROOT NODE)         │                             │
-│                     │     msg_id: "task_001"  │                             │
-│                     └───────────┬─────────────┘                             │
-│                                 │                                           │
-│              ┌──────────────────┼──────────────────┐                        │
-│              ▼                  ▼                  ▼                        │
-│   ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐           │
-│   │     Alice        │ │      Dave        │ │      Eve         │           │
-│   │   (Research)     │ │  (Development)   │ │      (QA)        │           │
-│   │ msg_id: "a_001"  │ │ msg_id: "d_001"  │ │ msg_id: "e_001"  │           │
-│   │ parents: [task]  │ │ parents: [task]  │ │ parents: [task]  │           │
-│   └────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘           │
-│            │                    │                    │                      │
-│            │         ┌──────────┴──────────┐         │                      │
-│            │         ▼                     │         │                      │
-│            │  ┌──────────────────┐         │         │                      │
-│            │  │      Dave        │         │         │                      │
-│            │  │  (Implementation)│         │         │                      │
-│            └─▶│ msg_id: "d_002"  │◀────────┘         │                      │
-│               │ parents: [a_001, │                   │                      │
-│               │          d_001]  │                   │                      │
-│               └────────┬─────────┘                   │                      │
-│                        │                             │                      │
-│                        ▼                             │                      │
-│               ┌──────────────────┐                   │                      │
-│               │       Eve        │                   │                      │
-│               │   (QA Review)    │◀──────────────────┘                      │
-│               │ msg_id: "e_002"  │                                          │
-│               │ parents: [d_002, │                                          │
-│               │          e_001]  │                                          │
-│               └──────────────────┘                                          │
-│                                                                             │
-│   Workflow: Alice researches → Dave implements using Alice's research      │
-│             → Eve QAs Dave's implementation                                 │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+**Workflow**: Alice researches → Dave implements using Alice's research → Eve QAs Dave's implementation
 
 ## Building a DKG with the SDK
 
@@ -158,25 +140,23 @@ weights = dkg.compute_contribution_weights()
 
 The algorithm counts how many paths from root to terminal nodes include each agent:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    CONTRIBUTION WEIGHT ALGORITHM                            │
-│                                                                             │
-│   For each worker w:                                                        │
-│     contrib(w) = Σ paths_through(w) / total_paths                          │
-│                                                                             │
-│   Example from DKG above:                                                   │
-│   • Path 1: Root → Alice → Dave → Eve (Alice, Dave, Eve all on path)       │
-│   • Path 2: Root → Dave → Eve (Dave, Eve on path)                          │
-│   • Path 3: Root → Eve → Eve (Eve on path)                                 │
-│                                                                             │
-│   Normalized weights:                                                       │
-│   • Alice: 30% (enables downstream work)                                   │
-│   • Dave: 45% (central node, most paths go through)                        │
-│   • Eve: 25% (terminal node, completes flow)                               │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+**Formula:** `contrib(w) = Σ paths_through(w) / total_paths`
+
+**Example paths from DKG above:**
+
+| Path | Agents on Path |
+|------|----------------|
+| Path 1 | Root → Alice → Dave → Eve |
+| Path 2 | Root → Dave → Eve |
+| Path 3 | Root → Eve |
+
+**Normalized weights:**
+
+| Worker | Weight | Reason |
+|--------|--------|--------|
+| Alice | 30% | Enables downstream work |
+| Dave | 45% | Central node, most paths go through |
+| Eve | 25% | Terminal node, completes flow |
 
 ## Thread Root Computation
 
@@ -294,12 +274,20 @@ weights = dkg.compute_contribution_weights()
 ### Network Mode (Future)
 Full XMTP integration for cross-agent communication:
 
-```
-Python Agent ──┐
-               │     ┌─────────────────┐
-TypeScript ────┼────▶│  XMTP Network   │──▶ Real-time DKG
-               │     └─────────────────┘
-Rust Agent ────┘
+```mermaid
+flowchart LR
+    PY[🐍 Python Agent]
+    TS[📜 TypeScript Agent]
+    RS[🦀 Rust Agent]
+    XMTP[XMTP Network]
+    DKG[Real-time DKG]
+    
+    PY --> XMTP
+    TS --> XMTP
+    RS --> XMTP
+    XMTP --> DKG
+    
+    style XMTP fill:#8B5CF6,stroke:#7C3AED,color:#fff
 ```
 
 ## Best Practices

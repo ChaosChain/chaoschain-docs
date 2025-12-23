@@ -55,7 +55,6 @@ chaoschain-docs/
     └── dark.svg
 ```
 
-
 ## Links
 
 - **Live Docs**: [docs.chaoscha.in](https://docs.chaoscha.in)

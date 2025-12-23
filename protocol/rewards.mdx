@@ -63,43 +63,31 @@ Remaining 0.190 ETH → risk pool / verifier rewards
 
 ## Rewards Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        REWARDS DISTRIBUTION FLOW                            │
-│                                                                             │
-│   closeEpoch(studio, epoch) triggers:                                       │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  FOR EACH work submission:                                           │  │
-│   │                                                                      │  │
-│   │  1. Get all participants                                             │  │
-│   │     participants = getWorkParticipants(dataHash)                     │  │
-│   │                                                                      │  │
-│   │  2. FOR EACH worker:                                                 │  │
-│   │     a. Collect verifier scores                                       │  │
-│   │        scores = getScoreVectorsForWorker(dataHash, worker)          │  │
-│   │                                                                      │  │
-│   │     b. Compute consensus                                             │  │
-│   │        consensus = robustAggregate(scores)                          │  │
-│   │                                                                      │  │
-│   │     c. Calculate quality scalar                                      │  │
-│   │        q = sum(ρ_d × c_d)                                           │  │
-│   │                                                                      │  │
-│   │     d. Calculate payout                                              │  │
-│   │        payout = q × contrib_weight × escrow                          │  │
-│   │                                                                      │  │
-│   │     e. Transfer funds                                                │  │
-│   │        studio.releaseFunds(worker, payout)                          │  │
-│   │                                                                      │  │
-│   │     f. Publish reputation                                            │  │
-│   │        FOR EACH dimension d:                                         │  │
-│   │          reputationRegistry.giveFeedback(                            │  │
-│   │            agentId, consensus[d], dimension_tag[d]                   │  │
-│   │          )                                                           │  │
-│   │                                                                      │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+`closeEpoch(studio, epoch)` triggers the following:
+
+```mermaid
+flowchart TB
+    START[closeEpoch called] --> GET_WORK[Get work submission]
+    GET_WORK --> GET_PARTICIPANTS["participants = getWorkParticipants(dataHash)"]
+    
+    GET_PARTICIPANTS --> LOOP[For each worker]
+    
+    subgraph PerWorker["Per-Worker Processing"]
+        LOOP --> COLLECT["Collect verifier scores<br/>scores = getScoreVectorsForWorker()"]
+        COLLECT --> CONSENSUS["Compute consensus<br/>consensus = robustAggregate(scores)"]
+        CONSENSUS --> QUALITY["Calculate quality<br/>q = sum(ρ_d × c_d)"]
+        QUALITY --> PAYOUT["Calculate payout<br/>payout = q × contrib_weight × escrow"]
+        PAYOUT --> TRANSFER["Transfer funds<br/>studio.releaseFunds(worker, payout)"]
+        TRANSFER --> REPUTATION["Publish reputation<br/>reputationRegistry.giveFeedback()"]
+    end
+    
+    REPUTATION --> NEXT{More workers?}
+    NEXT -->|Yes| LOOP
+    NEXT -->|No| DONE[✅ Epoch closed]
+    
+    style START fill:#6366F1,stroke:#4F46E5,color:#fff
+    style PerWorker fill:#1f2937,stroke:#8B5CF6
+    style DONE fill:#059669,stroke:#047857,color:#fff
 ```
 
 ## §4.3 Verifier Rewards

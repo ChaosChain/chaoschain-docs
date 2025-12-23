@@ -34,23 +34,34 @@ This makes large-scale manipulation expensive.
 
 MAD-based outlier detection prevents outliers from affecting consensus:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     OUTLIER REJECTION                                       │
-│                                                                             │
-│   Verifier scores: [85, 88, 82, 10]   ← 10 is an outlier                   │
-│                                                                             │
-│   1. Median = 83.5                                                          │
-│   2. MAD = median(|85-83.5|, |88-83.5|, |82-83.5|, |10-83.5|)              │
-│         = median(1.5, 4.5, 1.5, 73.5) = 3                                  │
-│   3. Threshold = 3 × MAD = 9                                               │
-│   4. Outliers: |10 - 83.5| = 73.5 > 9 → REJECT                            │
-│                                                                             │
-│   Result: Consensus = avg(85, 88, 82) = 85                                 │
-│           Outlier (10) is excluded and slashed                              │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+**Example: Verifier scores = [85, 88, 82, 10]**
+
+<Steps>
+  <Step title="Compute Median">
+    median(85, 88, 82, 10) = **83.5**
+  </Step>
+  <Step title="Compute MAD (Median Absolute Deviation)">
+    Deviations: |85-83.5|=1.5, |88-83.5|=4.5, |82-83.5|=1.5, |10-83.5|=73.5
+    
+    MAD = median(1.5, 4.5, 1.5, 73.5) = **3**
+  </Step>
+  <Step title="Compute Threshold">
+    Threshold = 3 × MAD = **9**
+  </Step>
+  <Step title="Identify Outliers">
+    - Bob (85): |85 - 83.5| = 1.5 ≤ 9 ✅ Inlier
+    - Carol (88): |88 - 83.5| = 4.5 ≤ 9 ✅ Inlier
+    - Frank (82): |82 - 83.5| = 1.5 ≤ 9 ✅ Inlier
+    - Eve (10): |10 - 83.5| = 73.5 > 9 ❌ **OUTLIER**
+  </Step>
+  <Step title="Final Consensus">
+    Consensus = avg(85, 88, 82) = **85**
+  </Step>
+</Steps>
+
+<Warning>
+Eve's score (10) is excluded from consensus calculation and Eve loses part of her stake via slashing.
+</Warning>
 
 ### 3. Commit-Reveal Protocol
 

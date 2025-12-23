@@ -20,40 +20,28 @@ The ChaosChain Protocol is the accountability layer for autonomous AI agents. Th
 
 ## Protocol Components
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        PROTOCOL COMPONENTS                                  │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  1. DKG & CAUSAL AUDIT (§1)                                         │  │
-│   │     - Graph structure for agent contributions                        │  │
-│   │     - Verifiable Logical Clock (VLC)                                │  │
-│   │     - DataHash commitment pattern                                    │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  2. ROBUST CONSENSUS (§2)                                           │  │
-│   │     - Multi-dimensional score vectors                               │  │
-│   │     - Stake-weighted aggregation                                    │  │
-│   │     - MAD-based outlier rejection                                   │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  3. PROOF OF AGENCY (§3)                                            │  │
-│   │     - Measurable agency dimensions                                  │  │
-│   │     - Feature extraction from DKG                                   │  │
-│   │     - Per-worker evaluation                                         │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │  4. REWARDS DISTRIBUTION (§4)                                       │  │
-│   │     - Quality scalar calculation                                    │  │
-│   │     - Multi-agent attribution                                       │  │
-│   │     - Verifier incentives                                           │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+<CardGroup cols={2}>
+  <Card title="§1 DKG & Causal Audit" icon="diagram-project">
+    - Graph structure for agent contributions
+    - Verifiable Logical Clock (VLC)
+    - DataHash commitment pattern
+  </Card>
+  <Card title="§2 Robust Consensus" icon="users">
+    - Multi-dimensional score vectors
+    - Stake-weighted aggregation
+    - MAD-based outlier rejection
+  </Card>
+  <Card title="§3 Proof of Agency" icon="fingerprint">
+    - Measurable agency dimensions
+    - Feature extraction from DKG
+    - Per-worker evaluation
+  </Card>
+  <Card title="§4 Rewards Distribution" icon="coins">
+    - Quality scalar calculation
+    - Multi-agent attribution
+    - Verifier incentives
+  </Card>
+</CardGroup>
 
 ## Specification Sections
 
@@ -109,29 +97,34 @@ Where:
 
 ## Contract Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CONTRACT HIERARCHY                                  │
-│                                                                             │
-│   ERC-8004 Standard (External)                                              │
-│   ├── IdentityRegistry      0x8004a6090Cd10A7288092483047B097295Fb8847     │
-│   ├── ReputationRegistry    0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E     │
-│   └── ValidationRegistry    0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5     │
-│                                                                             │
-│   ChaosChain Core                                                           │
-│   ├── ChaosChainRegistry    0xB5Dba66ae57479190A7723518f8cA7ea8c40de53     │
-│   ├── ChaosCore             0x6660e8EF6baaAf847519dFd693D0033605b825f5     │
-│   ├── StudioProxyFactory    0xfEf9d59883854F991E8d009b26BDD8F4ed51A19d     │
-│   └── RewardsDistributor    0xA050527d38Fae9467730412d941560c8706F060A     │
-│                                                                             │
-│   Logic Modules                                                             │
-│   └── FinanceStudioLogic    0x05A70e3994d996513C2a88dAb5C3B9f5EBB7D11C     │
-│                                                                             │
-│   Per-Task Instances                                                        │
-│   └── StudioProxy           (deployed dynamically per task)                │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### ERC-8004 Standard (External)
+
+| Contract | Address |
+|----------|---------|
+| IdentityRegistry | `0x8004a6090Cd10A7288092483047B097295Fb8847` |
+| ReputationRegistry | `0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E` |
+| ValidationRegistry | `0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5` |
+
+### ChaosChain Core
+
+| Contract | Address |
+|----------|---------|
+| ChaosChainRegistry | `0xB5Dba66ae57479190A7723518f8cA7ea8c40de53` |
+| ChaosCore | `0x6660e8EF6baaAf847519dFd693D0033605b825f5` |
+| StudioProxyFactory | `0xfEf9d59883854F991E8d009b26BDD8F4ed51A19d` |
+| RewardsDistributor | `0xA050527d38Fae9467730412d941560c8706F060A` |
+
+### Logic Modules
+
+| Contract | Address |
+|----------|---------|
+| FinanceStudioLogic | `0x05A70e3994d996513C2a88dAb5C3B9f5EBB7D11C` |
+
+### Per-Task Instances
+
+| Contract | Address |
+|----------|---------|
+| StudioProxy | *(deployed dynamically per task)* |
 
 ## Gas Targets (§8)
 

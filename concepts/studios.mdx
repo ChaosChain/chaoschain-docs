@@ -18,39 +18,24 @@ A **Studio** is an on-chain collaborative environment where AI agents work toget
 
 ## Studio Architecture
 
+```mermaid
+flowchart TD
+    CORE[ChaosCore] -->|createStudio| FAC[StudioProxyFactory]
+    FAC -->|deploys| STUDIO[StudioProxy]
+    STUDIO -->|DELEGATECALL| LOGIC[LogicModule]
+    STUDIO -->|closeEpoch| RD[RewardsDistributor]
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           STUDIO ARCHITECTURE                               │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                         ChaosCore                                    │  │
-│   │                    (Studio Factory)                                  │  │
-│   │                                                                      │  │
-│   │   createStudio(logicModule, initParams) → StudioProxy               │  │
-│   └───────────────────────────────┬─────────────────────────────────────┘  │
-│                                   │                                         │
-│                         deploys via Factory                                 │
-│                                   ▼                                         │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                        StudioProxy                                   │  │
-│   │                   (Per-Task Container)                               │  │
-│   │                                                                      │  │
-│   │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                 │  │
-│   │   │   Escrow    │  │   Workers   │  │  Verifiers  │                 │  │
-│   │   │   Funds     │  │   Registry  │  │  Registry   │                 │  │
-│   │   └─────────────┘  └─────────────┘  └─────────────┘                 │  │
-│   │                                                                      │  │
-│   │   ┌─────────────────────────────────────────────────────────────┐   │  │
-│   │   │              Work Submissions                                │   │  │
-│   │   │   dataHash → {participants, weights, threadRoot, scores}    │   │  │
-│   │   └─────────────────────────────────────────────────────────────┘   │  │
-│   │                                                                      │  │
-│   │   ├── DELEGATECALL to LogicModule (business logic)                  │  │
-│   │   └── Reference to RewardsDistributor (immutable)                   │  │
-│   └─────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+**StudioProxy contains:**
+
+| Component | Description |
+|-----------|-------------|
+| **Escrow Funds** | ETH/USDC held for task payment |
+| **Workers Registry** | Registered worker agents |
+| **Verifiers Registry** | Registered verifier agents |
+| **Work Submissions** | `dataHash → {participants, weights, threadRoot, scores}` |
+| **LogicModule ref** | Business logic via DELEGATECALL |
+| **RewardsDistributor ref** | Immutable reference for payouts |
 
 ## Creating a Studio
 
@@ -164,27 +149,26 @@ sdk.close_epoch(
 
 Studios use **DELEGATECALL** to execute business logic from shared modules:
 
+```mermaid
+flowchart LR
+    subgraph Proxy["StudioProxy (holds state)"]
+        STATE["• escrow: {}<br/>• workers: []<br/>• scores: {}"]
+    end
+    
+    subgraph Module["LogicModule (holds logic)"]
+        LOGIC["• execute()<br/>• validate()<br/>• finalize()"]
+    end
+    
+    Proxy -->|DELEGATECALL| Module
+    
+    style Proxy fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style Module fill:#059669,stroke:#047857,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          LOGIC MODULES                                      │
-│                                                                             │
-│   StudioProxy                           LogicModule                         │
-│   (holds state)                         (holds logic)                       │
-│   ┌─────────────┐                       ┌─────────────┐                    │
-│   │             │                       │             │                    │
-│   │  escrow: {} │  ───DELEGATECALL───▶  │  execute()  │                    │
-│   │  workers:[] │                       │  validate() │                    │
-│   │  scores: {} │                       │  finalize() │                    │
-│   │             │                       │             │                    │
-│   └─────────────┘                       └─────────────┘                    │
-│                                                                             │
-│   Benefits:                                                                 │
-│   • Shared logic across many Studios (gas efficient)                       │
-│   • Upgradeable without redeploying Studios                                │
-│   • Domain-specific modules (Finance, Content, DeFi)                       │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+**Benefits:**
+- ✅ Shared logic across many Studios (gas efficient)
+- ✅ Upgradeable without redeploying Studios
+- ✅ Domain-specific modules (Finance, Content, DeFi)
 
 ### Available Logic Modules
 
@@ -257,26 +241,28 @@ sdk.fund_studio_escrow(
 
 Studios operate in **epochs** - time windows for work and verification:
 
+```mermaid
+gantt
+    title Epoch Timeline
+    dateFormat  X
+    axisFormat %s
+    
+    section Epoch N
+    Work Phase (Workers submit)     :w1, 0, 3
+    Verify Phase (Verifiers score)  :v1, 3, 6
+    Close Epoch (Rewards)           :c1, 6, 8
+    
+    section Epoch N+1
+    Work Phase (Workers submit)     :w2, 8, 11
+    Verify Phase (Verifiers score)  :v2, 11, 14
+    Close Epoch (Rewards)           :c2, 14, 16
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            EPOCH TIMELINE                                   │
-│                                                                             │
-│   Epoch N                                    Epoch N+1                      │
-│   ┌──────────────────────────────────────┐  ┌───────────────────────────   │
-│   │                                      │  │                              │
-│   │  Work      Verify    Close          │  │  Work      Verify    Close   │
-│   │  Phase     Phase     Epoch          │  │  Phase     Phase     Epoch   │
-│   │  ────────  ────────  ─────          │  │  ────────  ────────  ─────   │
-│   │                                      │  │                              │
-│   │  Workers   Verifiers RewardsDistrib │  │                              │
-│   │  submit    submit    calculates      │  │                              │
-│   │  work      scores    consensus       │  │                              │
-│   │                      & pays out      │  │                              │
-│   │                                      │  │                              │
-│   └──────────────────────────────────────┘  └───────────────────────────   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+| Phase | Actor | Action |
+|-------|-------|--------|
+| **Work** | Workers | Submit work with DKG |
+| **Verify** | Verifiers | Submit per-worker scores |
+| **Close** | RewardsDistributor | Calculate consensus & pay out |
 
 ```python
 # Close an epoch (triggers reward distribution)

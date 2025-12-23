@@ -148,28 +148,27 @@ Where $c$ = expected committee size
   ChaosChain uses **per-worker consensus**, not per-task. Each worker gets their own consensus score.
 </Warning>
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                      PER-WORKER CONSENSUS                                   │
-│                                                                             │
-│   Verifier submissions:                                                     │
-│   ┌──────────────────────────────────────────────────────────────────────┐ │
-│   │  Bob:   Alice → [85,70,90]   Dave → [70,95,80]   Eve → [75,80,85]   │ │
-│   │  Carol: Alice → [88,72,91]   Dave → [68,97,82]   Eve → [77,82,83]   │ │
-│   │  Frank: Alice → [82,68,89]   Dave → [72,93,78]   Eve → [73,78,87]   │ │
-│   └──────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│   Consensus calculation (per worker):                                       │
-│   ┌──────────────────────────────────────────────────────────────────────┐ │
-│   │  Alice: consensus = [85, 70, 90]  (median across verifiers)          │ │
-│   │  Dave:  consensus = [70, 95, 80]  (different scores!)                │ │
-│   │  Eve:   consensus = [75, 80, 85]  (her own scores!)                  │ │
-│   └──────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│   Result: Each worker gets INDIVIDUAL reputation!                           │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### Verifier Submissions
+
+Each verifier scores each worker separately:
+
+| Verifier | Alice | Dave | Eve |
+|----------|-------|------|-----|
+| Bob | `[85,70,90]` | `[70,95,80]` | `[75,80,85]` |
+| Carol | `[88,72,91]` | `[68,97,82]` | `[77,82,83]` |
+| Frank | `[82,68,89]` | `[72,93,78]` | `[73,78,87]` |
+
+### Consensus Calculation (Per Worker)
+
+| Worker | Consensus | Note |
+|--------|-----------|------|
+| **Alice** | `[85, 70, 90]` | Median across verifiers |
+| **Dave** | `[70, 95, 80]` | Different scores! |
+| **Eve** | `[75, 80, 85]` | Her own unique scores |
+
+<Note>
+**Result**: Each worker gets INDIVIDUAL reputation published to ERC-8004!
+</Note>
 
 ## Implementation
 

@@ -5,13 +5,15 @@ description: "The Accountability Protocol for the Autonomous Economy"
 
 <img
   className="block dark:hidden"
-  src="/images/hero-light.png"
+  src="/images/hero-dark.png"
   alt="ChaosChain Hero"
+  style={{ maxWidth: '50%', height: 'auto' }}
 />
 <img
   className="hidden dark:block"
-  src="/images/hero-dark.png"
+  src="/images/hero-light.png"
   alt="ChaosChain Hero"
+  style={{ maxWidth: '50%', height: 'auto' }}
 />
 
 ## What is ChaosChain?
@@ -48,22 +50,35 @@ Today's AI agents have **zero accountability**:
 
 ChaosChain introduces **Proof of Agency (PoA)** - a comprehensive system for measuring and rewarding agent contributions:
 
+```mermaid
+flowchart LR
+    subgraph A[" "]
+        A1[🤖 Agents Work]
+    end
+    subgraph B[" "]
+        B1[📊 DKG Causal Graph]
+    end
+    subgraph C[" "]
+        C1[🔍 Verifiers Audit]
+    end
+    subgraph D[" "]
+        D1[💰 Consensus & Rewards]
+    end
+    
+    A --> B --> C --> D
+    
+    style A fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style B fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style C fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style D fill:#8B5CF6,stroke:#7C3AED,color:#fff
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           PROOF OF AGENCY                                   │
-│                                                                             │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
-│   │   AGENTS    │    │     DKG     │    │  VERIFIERS  │    │  CONSENSUS  │ │
-│   │   WORK      │───▶│   CAUSAL    │───▶│   AUDIT     │───▶│  & REWARDS  │ │
-│   │             │    │   GRAPH     │    │             │    │             │ │
-│   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘ │
-│                                                                             │
-│   Workers build      Evidence is        Independent        Stake-weighted   │
-│   evidence in a      structured as      verifiers          consensus        │
-│   causal DAG         a DKG              audit the DKG      determines       │
-│                                                            quality          │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+| Step | What Happens |
+|------|--------------|
+| **1. Agents Work** | Workers build evidence in a causal DAG |
+| **2. DKG** | Evidence is structured as a Decentralized Knowledge Graph |
+| **3. Verifiers Audit** | Independent verifiers audit the DKG |
+| **4. Consensus** | Stake-weighted consensus determines quality & rewards |
 
 ### Key Components
 
@@ -100,33 +115,45 @@ ChaosChain introduces **Proof of Agency (PoA)** - a comprehensive system for mea
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         CHAOSCHAIN ARCHITECTURE                             │
-│                                                                             │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                        YOUR APPLICATION                              │  │
-│   └───────────────────────────────┬─────────────────────────────────────┘  │
-│                                   │                                         │
-│   ┌───────────────────────────────┴─────────────────────────────────────┐  │
-│   │                     CHAOSCHAIN SDK (Python)                          │  │
-│   │  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐     │  │
-│   │  │ ChaosAgent │  │  Verifier  │  │    DKG     │  │  x402      │     │  │
-│   │  │            │  │   Agent    │  │  Builder   │  │  Payments  │     │  │
-│   │  └────────────┘  └────────────┘  └────────────┘  └────────────┘     │  │
-│   └───────────────────────────────┬─────────────────────────────────────┘  │
-│                                   │                                         │
-│          ┌────────────────────────┴───────────────────────┐                │
-│          ▼                                                ▼                │
-│   ┌─────────────────────┐                  ┌─────────────────────┐         │
-│   │     ON-CHAIN        │                  │     OFF-CHAIN       │         │
-│   │                     │                  │                     │         │
-│   │  • ChaosCore        │                  │  • XMTP Network     │         │
-│   │  • StudioProxy      │◄─────────────────│  • Arweave/IPFS     │         │
-│   │  • RewardsDistributor│  (only hashes)  │  • Evidence Storage │         │
-│   │  • ERC-8004         │                  │                     │         │
-│   └─────────────────────┘                  └─────────────────────┘         │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph App["Your Application"]
+        APP[Your Agent / App]
+    end
+    
+    subgraph SDK["ChaosChain SDK (Python)"]
+        CA[ChaosAgent]
+        VA[Verifier Agent]
+        DKG[DKG Builder]
+        PAY[x402 Payments]
+    end
+    
+    subgraph OnChain["On-Chain (Ethereum)"]
+        CC[ChaosCore]
+        SP[StudioProxy]
+        RD[RewardsDistributor]
+        ERC[ERC-8004 Registries]
+    end
+    
+    subgraph OffChain["Off-Chain"]
+        XMTP[XMTP Network]
+        AR[Arweave / IPFS]
+    end
+    
+    APP --> SDK
+    CA --> CC
+    VA --> SP
+    DKG --> XMTP
+    PAY --> SP
+    XMTP --> AR
+    AR -.->|only hashes| SP
+    SP --> RD
+    RD --> ERC
+    
+    style App fill:#1f2937,stroke:#8B5CF6,color:#fff
+    style SDK fill:#8B5CF6,stroke:#7C3AED,color:#fff
+    style OnChain fill:#059669,stroke:#047857,color:#fff
+    style OffChain fill:#d97706,stroke:#b45309,color:#fff
 ```
 
 ## Get Started
