@@ -153,12 +153,7 @@
     "dark": "/logo/dark.svg"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Community",
-        "href": "https://discord.gg/chaoschain"
-      }
-    ],
+    "links": [],
     "primary": {
       "type": "button",
       "label": "Get Started",
