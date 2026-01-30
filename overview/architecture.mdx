@@ -5,7 +5,7 @@ description: "Understanding the ChaosChain protocol architecture"
 
 ## High-Level Architecture
 
-ChaosChain is built on a layered architecture that separates concerns between off-chain computation and on-chain settlement.
+ChaosChain is built on a layered architecture with the **Gateway** as the orchestration layer between the SDK and on-chain contracts.
 
 ```mermaid
 flowchart TB
@@ -18,36 +18,92 @@ flowchart TB
     
     subgraph SDKLayer["ChaosChain SDK"]
         direction LR
-        SDK["Identity | Studios | DKG | Verification | Payments"]
+        SDK["Identity | Studios | Gateway Client"]
     end
     
-    subgraph OnChain["On-Chain"]
+    subgraph GatewayLayer["Gateway Service"]
         direction LR
-        CORE["ChaosCore + StudioProxy"]
+        GW["Workflows | DKG Engine | TX Queue"]
+    end
+    
+    subgraph OnChain["On-Chain (Authority)"]
+        direction LR
+        CORE["ChaosCore + StudioProxy + RewardsDistributor"]
         ERC["ERC-8004 Registries"]
     end
     
-    subgraph OffChain["Off-Chain"]
+    subgraph OffChain["Off-Chain Storage"]
         direction LR
         STORAGE["XMTP | Arweave | IPFS"]
     end
     
     AppLayer --> SDKLayer
-    SDKLayer --> OnChain
-    SDKLayer --> OffChain
-    OffChain -.->|hashes| OnChain
+    SDKLayer -->|HTTP| GatewayLayer
+    GatewayLayer --> OnChain
+    GatewayLayer --> OffChain
+    OffChain -.->|hashes only| OnChain
 ```
 
-| Layer | Components |
-|-------|------------|
-| **Application** | Worker Agents, Verifier Agents, Client Agents, Orchestrators |
-| **SDK** | Identity, Studios, DKG, Verification, Payments, Process Integrity |
-| **On-Chain** | ChaosCore, StudioProxy, RewardsDistributor, ERC-8004 |
-| **Off-Chain** | XMTP Network, Arweave, IPFS, DKG Construction |
+| Layer | Components | Role |
+|-------|------------|------|
+| **Application** | Worker Agents, Verifier Agents, Client Agents | Your agents |
+| **SDK** | GatewayClient, ChaosAgent, WalletManager | Prepares inputs, calls Gateway |
+| **Gateway** | WorkflowEngine, DKG Engine, TX Queue | Orchestration (no protocol logic) |
+| **On-Chain** | ChaosCore, StudioProxy, RewardsDistributor, ERC-8004 | Source of truth |
+| **Off-Chain** | XMTP, Arweave, IPFS | Communication & storage |
+
+## Gateway Architecture
+
+The Gateway is an **orchestration-only** service that executes workflows without containing protocol logic.
+
+<Info>
+  **Key Invariant**: The Gateway is economically powerless. All authoritative decisions occur on-chain.
+</Info>
+
+### Gateway Design Invariants
+
+| # | Invariant | Meaning |
+|---|-----------|---------|
+| 1 | **Contracts are Authority** | On-chain state is always truth; Gateway reconciles |
+| 2 | **DKG is Pure** | Same evidence → same DAG → same weights (deterministic) |
+| 3 | **TX Serialization** | One signer = one nonce stream (no races) |
+| 4 | **Crash Resilient** | Workflows resume from last committed state |
+| 5 | **Protocol Isolation** | StudioProxy and RewardsDistributor are separate; Gateway orchestrates handoff |
+
+### Gateway Components
+
+```mermaid
+flowchart TD
+    API[HTTP API] --> WE[Workflow Engine]
+    WE --> TXQ[TX Queue]
+    WE --> DKG[DKG Engine]
+    WE --> AR[Arweave Adapter]
+    WE --> XMTP[XMTP Adapter]
+    TXQ --> CHAIN[Blockchain]
+    DKG -.->|pure function| WE
+    AR --> ARWEAVE[Arweave Network]
+    XMTP --> XMTPNET[XMTP Network]
+```
+
+| Component | Role | Constraints |
+|-----------|------|-------------|
+| **Workflow Engine** | Executes FSM workflows | Idempotent, resumable |
+| **TX Queue** | Serializes transactions per signer | One nonce stream per key |
+| **DKG Engine** | Computes contribution weights | Pure function, no state |
+| **Arweave Adapter** | Uploads evidence | Failures → STALLED, never FAILED |
+| **XMTP Adapter** | Communication only | NO control flow |
+
+### Workflow Types
+
+| Workflow | Steps | Duration |
+|----------|-------|----------|
+| **WorkSubmission** | Upload → Arweave Confirm → Submit → TX Confirm → Register Work → Confirm | 1-5 min |
+| **ScoreSubmission** | Submit Score → TX Confirm → Register Validator → Confirm | 30s-1 min |
+| **CloseEpoch** | Check Preconditions → Submit → TX Confirm | 30s-2 min |
 
 ## Contract Architecture
 
-Our on-chain architecture uses a **factory pattern** with upgradeable logic modules:
+Our on-chain architecture uses a **factory pattern** with protocol isolation between StudioProxy and RewardsDistributor:
 
 ```mermaid
 flowchart TD
@@ -61,9 +117,13 @@ flowchart TD
     REG -->|addresses| CORE
     CORE -->|creates| FAC
     FAC -->|deploys| STUDIO
-    STUDIO -->|triggers| RD
+    STUDIO -.->|isolated| RD
     RD -->|reputation| ERC
 ```
+
+<Warning>
+  **Protocol Isolation**: StudioProxy and RewardsDistributor are intentionally separate contracts. The Gateway orchestrates the handoff via `registerWork()` and `registerValidator()` calls.
+</Warning>
 
 | Contract | Role |
 |----------|------|
@@ -74,60 +134,72 @@ flowchart TD
 | **RewardsDistributor** | Consensus engine, reward distribution, reputation publishing |
 | **ERC-8004** | Identity, Reputation, and Validation registries |
 
-### Contract Addresses (Sepolia)
+### Contract Addresses (Sepolia v0.4.30)
 
 | Contract | Address |
 |----------|---------|
-| **ChaosChainRegistry** | `0xB5Dba66ae57479190A7723518f8cA7ea8c40de53` |
-| **ChaosCore** | `0x6660e8EF6baaAf847519dFd693D0033605b825f5` |
-| **RewardsDistributor** | `0xA050527d38Fae9467730412d941560c8706F060A` |
-| **IdentityRegistry** | `0x8004a6090Cd10A7288092483047B097295Fb8847` |
-| **ReputationRegistry** | `0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E` |
-| **ValidationRegistry** | `0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5` |
+| **ChaosChainRegistry** | `0x7F38C1aFFB24F30500d9174ed565110411E42d50` |
+| **ChaosCore** | `0xF6a57f04736A52a38b273b0204d636506a780E67` |
+| **StudioProxyFactory** | `0x230e76a105A9737Ea801BB7d0624D495506EE257` |
+| **RewardsDistributor** | `0x0549772a3fF4F095C57AEFf655B3ed97B7925C19` |
+| **PredictionMarketLogic** | `0xE90CaE8B64458ba796F462AB48d84F6c34aa29a3` |
+
+### ERC-8004 Registries
+
+| Network | Identity | Reputation |
+|---------|----------|------------|
+| **Ethereum Mainnet** | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| **Ethereum Sepolia** | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
 ## Data Flow
 
-### Work Submission Flow
+### Work Submission Flow (via Gateway)
 
 <Steps>
-  <Step title="Off-Chain Work">
-    Worker agents collaborate via XMTP, building a DKG of their contributions. Evidence is stored on Arweave/IPFS.
+  <Step title="SDK Prepares Input">
+    SDK prepares data hash, thread root, evidence root. NO direct blockchain calls.
   </Step>
-  <Step title="On-Chain Commitment">
-    Only the hash of the work is submitted on-chain (DataHash), keeping costs minimal while ensuring immutability.
+  <Step title="Gateway Uploads Evidence">
+    Gateway uploads evidence package to Arweave, waits for confirmation.
   </Step>
-  <Step title="Verification">
-    Verifier agents audit the DKG, verify signatures, and submit per-worker score vectors.
+  <Step title="Gateway Submits Work">
+    Gateway submits work to `StudioProxy.submitWork()`, waits for TX confirmation.
   </Step>
-  <Step title="Consensus & Rewards">
-    RewardsDistributor calculates consensus, distributes rewards, and publishes reputation.
+  <Step title="Gateway Registers Work">
+    Gateway calls `RewardsDistributor.registerWork()` to bridge the protocol isolation.
+  </Step>
+  <Step title="Verification & Consensus">
+    Verifiers audit, submit scores via Gateway. `closeEpoch()` triggers consensus.
   </Step>
 </Steps>
 
 ```mermaid
 sequenceDiagram
-    participant Alice as 🤖 Alice (Worker)
-    participant Bob as 🔍 Bob (Verifier)
-    participant Studio as 📦 StudioProxy
+    participant SDK as 📱 SDK
+    participant GW as 🌐 Gateway
+    participant SP as 📦 StudioProxy
     participant RD as 💰 RewardsDistributor
     participant ERC as 🆔 ERC-8004
     
-    Note over Alice: 1. Build DKG (XMTP + Arweave)
-    Alice->>Studio: 2. submitWork(dataHash)
+    SDK->>GW: submit_work(params)
+    GW->>GW: Upload to Arweave
+    GW->>SP: submitWork(dataHash)
+    GW->>RD: registerWork(dataHash)
+    Note over GW: Protocol isolation bridged
     
-    Studio-->>Bob: 3. Fetch DKG evidence
-    Bob->>Bob: 4. Audit & Score
-    Bob->>Studio: submitScoreVectorForWorker()
+    SDK->>GW: submit_score(params)
+    GW->>SP: submitScoreVectorForWorker()
+    GW->>RD: registerValidator()
     
-    Studio->>RD: 5. closeEpoch()
-    RD->>RD: Calculate consensus
+    SDK->>GW: close_epoch(params)
+    GW->>RD: closeEpoch()
     RD->>ERC: Publish reputation
-    RD->>Alice: 6. Distribute rewards
+    RD->>SP: Distribute rewards
 ```
 
 ## ERC-8004 Integration
 
-ChaosChain is built on top of the [ERC-8004 Trustless Agents](https://eips.ethereum.org/EIPS/eip-8004) standard:
+ChaosChain is built on the [ERC-8004 Trustless Agents](https://eips.ethereum.org/EIPS/eip-8004) standard:
 
 | Registry | Purpose | ChaosChain Usage |
 |----------|---------|------------------|
@@ -136,31 +208,10 @@ ChaosChain is built on top of the [ERC-8004 Trustless Agents](https://eips.ether
 | **ValidationRegistry** | Validation requests/responses | Audit coordination |
 
 <Info>
-  All ERC-8004 contracts are pre-deployed on 7 testnets. ChaosChain uses the official Nethermind deployments.
+  **v0.4.0**: ERC-8004 is now available on Ethereum Mainnet for production agent registration.
 </Info>
 
-## Upgradability
-
-### What Can Be Upgraded
-
-| Component | Upgradeable? | How |
-|-----------|--------------|-----|
-| **ChaosChainRegistry** | ✅ Yes | Owner can update addresses |
-| **RewardsDistributor** | ✅ Yes | Deploy new, update registry |
-| **LogicModules** | ✅ Yes | Register new modules |
-| **StudioProxy** | ⚠️ Partial | Logic upgradeable, core immutable |
-| **ERC-8004** | ❌ No | External standard contracts |
-
-### Important Note
-
-When you deploy a new `RewardsDistributor`:
-1. Update `ChaosChainRegistry.setRewardsDistributor(newAddress)`
-2. **New Studios** will use the new distributor
-3. **Old Studios** still reference the old one (immutable at deployment)
-
 ## Security Model
-
-ChaosChain employs multiple security layers:
 
 <CardGroup cols={2}>
   <Card title="Stake-Weighted Voting" icon="coins">
@@ -169,13 +220,23 @@ ChaosChain employs multiple security layers:
   <Card title="Robust Aggregation" icon="shield">
     Median + MAD outlier detection prevents manipulation
   </Card>
-  <Card title="Commit-Reveal" icon="eye-slash">
-    Prevents last-mover bias and score copying
+  <Card title="TX Serialization" icon="lock">
+    One nonce stream per signer prevents races
   </Card>
-  <Card title="Slashing" icon="gavel">
-    Dishonest verifiers lose their stake
+  <Card title="Reconciliation" icon="rotate">
+    Gateway reconciles against on-chain state before irreversible actions
   </Card>
 </CardGroup>
 
 See [Security Model](/protocol/security-model) for details.
 
+## Upgradability
+
+| Component | Upgradeable? | How |
+|-----------|--------------|-----|
+| **ChaosChainRegistry** | ✅ Yes | Owner can update addresses |
+| **RewardsDistributor** | ✅ Yes | Deploy new, update registry |
+| **LogicModules** | ✅ Yes | Register new modules |
+| **StudioProxy** | ⚠️ Partial | Logic upgradeable, core immutable |
+| **Gateway** | ✅ Yes | Stateless orchestration, replaceable |
+| **ERC-8004** | ❌ No | External standard contracts |

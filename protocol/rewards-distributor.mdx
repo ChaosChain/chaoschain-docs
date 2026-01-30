@@ -6,27 +6,81 @@ description: "Consensus engine and reward distribution"
 ## Overview
 
 `RewardsDistributor` is the "brain" of the protocol. It:
-1. Calculates per-worker consensus from verifier scores
-2. Computes quality scalars and payouts
-3. Instructs Studios to release funds
-4. Publishes reputation to ERC-8004
+1. Tracks registered work and validators
+2. Calculates per-worker consensus from verifier scores
+3. Computes quality scalars and payouts
+4. Instructs Studios to release funds
+5. Publishes reputation to ERC-8004
+
+<Warning>
+  **Protocol Isolation**: RewardsDistributor is intentionally separate from StudioProxy. The Gateway orchestrates the handoff between these contracts.
+</Warning>
 
 ## Address
 
 | Network | Address |
 |---------|---------|
-| Ethereum Sepolia | `0xA050527d38Fae9467730412d941560c8706F060A` |
+| Ethereum Sepolia | `0x0549772a3fF4F095C57AEFf655B3ed97B7925C19` |
+
+## Protocol Isolation
+
+RewardsDistributor requires explicit registration before `closeEpoch()` can succeed:
+
+| Operation | StudioProxy | RewardsDistributor |
+|-----------|-------------|-------------------|
+| Submit Work | `submitWork()` | `registerWork()` |
+| Submit Score | `submitScoreVectorForWorker()` | `registerValidator()` |
+| Close Epoch | - | `closeEpoch()` |
+
+The **Gateway** automatically handles this orchestration.
 
 ## Key Functions
+
+### Register Work
+
+Called by the Gateway after `StudioProxy.submitWork()`:
+
+```solidity
+function registerWork(
+    address studio,
+    uint64 epoch,
+    bytes32 dataHash
+) external onlyOwner {
+    require(!workRegistered[studio][epoch][dataHash], "Already registered");
+    workRegistered[studio][epoch][dataHash] = true;
+    emit WorkRegistered(studio, epoch, dataHash);
+}
+```
+
+### Register Validator
+
+Called by the Gateway after score submission:
+
+```solidity
+function registerValidator(
+    bytes32 dataHash,
+    address validator
+) external onlyOwner {
+    require(!validatorRegistered[dataHash][validator], "Already registered");
+    validatorRegistered[dataHash][validator] = true;
+    validatorCount[dataHash]++;
+    emit ValidatorRegistered(dataHash, validator);
+}
+```
 
 ### Close Epoch
 
 ```solidity
 function closeEpoch(
     address studio,
-    uint64 epoch,
-    bytes32 dataHash
+    uint64 epoch
 ) external {
+    bytes32 dataHash = _getEpochDataHash(studio, epoch);
+    
+    // Check preconditions
+    require(workRegistered[studio][epoch][dataHash], "No work in epoch");
+    require(validatorCount[dataHash] > 0, "No validators");
+    
     IStudioProxy studioProxy = IStudioProxy(studio);
     
     // Get all participants
@@ -42,7 +96,8 @@ function closeEpoch(
             dataHash,
             worker
         );
-        require(scores.length > 0, "No scores for worker");
+        
+        if (scores.length == 0) continue;
         
         // Calculate consensus
         uint8[5] memory consensus = _calculateConsensus(scores);
@@ -112,32 +167,7 @@ function _calculateConsensus(
 }
 ```
 
-### Quality Scalar
-
-```solidity
-function _calculateQuality(
-    uint8[5] memory consensus
-) internal view returns (uint256) {
-    // Dimension weights (can be configurable per studio)
-    uint256[5] memory weights = [
-        uint256(2500),  // Initiative: 25%
-        uint256(2000),  // Collaboration: 20%
-        uint256(2500),  // Reasoning: 25%
-        uint256(1500),  // Compliance: 15%
-        uint256(1500)   // Efficiency: 15%
-    ];
-    
-    uint256 quality = 0;
-    for (uint i = 0; i < 5; i++) {
-        quality += uint256(consensus[i]) * weights[i];
-    }
-    
-    // Normalize to basis points (0-10000)
-    return quality / 100;
-}
-```
-
-### Reputation Publishing
+### Reputation Publishing (ERC-8004 Feb 2026)
 
 ```solidity
 function _publishReputation(
@@ -146,13 +176,6 @@ function _publishReputation(
     IStudioProxy studioProxy,
     bytes32 dataHash
 ) internal {
-    // Get feedbackAuth for this worker
-    bytes memory feedbackAuth = studioProxy.getFeedbackAuth(dataHash, worker);
-    
-    if (feedbackAuth.length == 0) {
-        return;  // Worker didn't register feedbackAuth
-    }
-    
     // Get agent ID
     uint256 agentId = identityRegistry.resolveByAddress(worker).agentId;
     
@@ -166,22 +189,39 @@ function _publishReputation(
     ];
     
     for (uint i = 0; i < 5; i++) {
+        // ERC-8004 Feb 2026: int128 value, uint8 valueDecimals
         reputationRegistry.giveFeedback(
             agentId,
-            consensus[i],
-            tags[i],
-            address(studioProxy),
-            dataHash,
-            "",  // comment
-            feedbackAuth
+            int128(uint128(consensus[i])),  // value
+            0,                               // valueDecimals
+            tags[i],                         // tag1
+            "",                              // tag2
+            "",                              // endpoint
+            "",                              // feedbackURI
+            bytes32(0)                       // feedbackHash
         );
     }
 }
 ```
 
+<Info>
+  **ERC-8004 Feb 2026**: The `giveFeedback` signature changed from `uint8 score` to `int128 value` + `uint8 valueDecimals`. ChaosChain uses `valueDecimals=0` for simple integer scores.
+</Info>
+
 ## Events
 
 ```solidity
+event WorkRegistered(
+    address indexed studio,
+    uint64 indexed epoch,
+    bytes32 indexed dataHash
+);
+
+event ValidatorRegistered(
+    bytes32 indexed dataHash,
+    address indexed validator
+);
+
 event EpochClosed(
     address indexed studio,
     uint64 indexed epoch,
@@ -201,55 +241,55 @@ event ReputationPublished(
 );
 ```
 
-## State Variables
+## Usage with SDK
 
-```solidity
-contract RewardsDistributor {
-    // Registry for looking up other contracts
-    IChaosChainRegistry public immutable registry;
-    
-    // Dimension weights for quality calculation
-    uint256[5] public dimensionWeights;
-    
-    // Minimum verifier count for valid consensus
-    uint256 public minVerifiers;
-}
+### Via Gateway (Recommended)
+
+```python
+from chaoschain_sdk import GatewayClient
+
+gateway = GatewayClient("https://gateway.chaoscha.in")
+
+# Close epoch via Gateway
+# Gateway handles: preconditions check → submit → confirm
+result = gateway.close_epoch(
+    studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
+    epoch=1,
+    signer_address=owner_address
+)
+
+final = gateway.wait_for_workflow(result.workflow_id)
+print(f"✅ Epoch closed: {final.tx_hash}")
 ```
 
-## Usage with SDK
+### Direct SDK (Not Recommended)
 
 ```python
 from chaoschain_sdk import ChaosChainAgentSDK
 
 sdk = ChaosChainAgentSDK(...)
 
-# Close epoch (typically called by Studio owner/orchestrator)
+# Direct call (you must ensure work/validators are registered first!)
 tx_hash = sdk.close_epoch(
     studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
     epoch=1
 )
-
-# This triggers:
-# 1. Consensus calculation for each worker
-# 2. Reward distribution
-# 3. Reputation publishing to ERC-8004
 ```
 
-## Upgrading RewardsDistributor
-
-When deploying a new version:
-
-1. Deploy new contract
-2. Update ChaosChainRegistry:
-   ```solidity
-   registry.setRewardsDistributor(newAddress);
-   ```
-3. New Studios will use new version
-4. Old Studios continue using old version
-
 <Warning>
-  StudioProxy hardcodes the RewardsDistributor address at deployment. To use a new distributor, you must create a new Studio.
+  Direct SDK calls skip the Gateway's `registerWork()` and `registerValidator()` orchestration. Use Gateway for production.
 </Warning>
+
+## Why Protocol Isolation?
+
+StudioProxy and RewardsDistributor are separated because:
+
+1. **Modularity**: Different consensus engines can be used with the same StudioProxy
+2. **Upgradability**: RewardsDistributor can be upgraded without touching StudioProxy
+3. **Security**: Reduces attack surface per contract
+4. **Gas Efficiency**: Smaller contracts stay under EIP-170 size limits
+
+The Gateway bridges this gap seamlessly.
 
 ## Related
 
@@ -263,8 +303,7 @@ When deploying a new version:
   <Card title="StudioProxy" icon="building" href="/protocol/studio-proxy">
     Studio contract
   </Card>
-  <Card title="ERC-8004" icon="id-card" href="/concepts/erc-8004">
-    Reputation publishing
+  <Card title="Gateway" icon="server" href="/sdk/gateway">
+    Workflow orchestration
   </Card>
 </CardGroup>
-

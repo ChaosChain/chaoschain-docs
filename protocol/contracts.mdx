@@ -3,34 +3,43 @@ title: "Contract Addresses"
 description: "All deployed ChaosChain contract addresses"
 ---
 
-## Ethereum Sepolia (Primary Network)
+## ChaosChain Protocol v0.4.30 (Ethereum Sepolia)
 
-### ChaosChain Core Contracts
+### Core Contracts
 
 | Contract | Address | Etherscan |
 |----------|---------|-----------|
-| **ChaosChainRegistry** | `0xB5Dba66ae57479190A7723518f8cA7ea8c40de53` | [View](https://sepolia.etherscan.io/address/0xB5Dba66ae57479190A7723518f8cA7ea8c40de53) |
-| **ChaosCore** | `0x6660e8EF6baaAf847519dFd693D0033605b825f5` | [View](https://sepolia.etherscan.io/address/0x6660e8EF6baaAf847519dFd693D0033605b825f5) |
-| **StudioProxyFactory** | `0xfEf9d59883854F991E8d009b26BDD8F4ed51A19d` | [View](https://sepolia.etherscan.io/address/0xfEf9d59883854F991E8d009b26BDD8F4ed51A19d) |
-| **RewardsDistributor** | `0xA050527d38Fae9467730412d941560c8706F060A` | [View](https://sepolia.etherscan.io/address/0xA050527d38Fae9467730412d941560c8706F060A) |
+| **ChaosChainRegistry** | `0x7F38C1aFFB24F30500d9174ed565110411E42d50` | [View](https://sepolia.etherscan.io/address/0x7F38C1aFFB24F30500d9174ed565110411E42d50) |
+| **ChaosCore** | `0xF6a57f04736A52a38b273b0204d636506a780E67` | [View](https://sepolia.etherscan.io/address/0xF6a57f04736A52a38b273b0204d636506a780E67) |
+| **StudioProxyFactory** | `0x230e76a105A9737Ea801BB7d0624D495506EE257` | [View](https://sepolia.etherscan.io/address/0x230e76a105A9737Ea801BB7d0624D495506EE257) |
+| **RewardsDistributor** | `0x0549772a3fF4F095C57AEFf655B3ed97B7925C19` | [View](https://sepolia.etherscan.io/address/0x0549772a3fF4F095C57AEFf655B3ed97B7925C19) |
 
 ### Logic Modules
 
 | Module | Address | Etherscan |
 |--------|---------|-----------|
-| **FinanceStudioLogic** | `0x05A70e3994d996513C2a88dAb5C3B9f5EBB7D11C` | [View](https://sepolia.etherscan.io/address/0x05A70e3994d996513C2a88dAb5C3B9f5EBB7D11C) |
+| **PredictionMarketLogic** | `0xE90CaE8B64458ba796F462AB48d84F6c34aa29a3` | [View](https://sepolia.etherscan.io/address/0xE90CaE8B64458ba796F462AB48d84F6c34aa29a3) |
 
-### ERC-8004 Registries (Nethermind)
+## ERC-8004 Registries
+
+### Ethereum Mainnet (Production)
+
+<Info>
+  **New in v0.4.0**: ERC-8004 is live on Ethereum Mainnet for production agent registration.
+</Info>
 
 | Registry | Address | Etherscan |
 |----------|---------|-----------|
-| **IdentityRegistry** | `0x8004a6090Cd10A7288092483047B097295Fb8847` | [View](https://sepolia.etherscan.io/address/0x8004a6090Cd10A7288092483047B097295Fb8847) |
-| **ReputationRegistry** | `0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E` | [View](https://sepolia.etherscan.io/address/0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E) |
+| **IdentityRegistry** | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | [View](https://etherscan.io/address/0x8004A169FB4a3325136EB29fA0ceB6D2e539a432) |
+| **ReputationRegistry** | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` | [View](https://etherscan.io/address/0x8004BAa17C55a88189AE136b182e5fdA19dE9b63) |
+
+### Ethereum Sepolia (Development)
+
+| Registry | Address | Etherscan |
+|----------|---------|-----------|
+| **IdentityRegistry** | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | [View](https://sepolia.etherscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
+| **ReputationRegistry** | `0x8004B663056A597Dffe9eCcC1965A193B7388713` | [View](https://sepolia.etherscan.io/address/0x8004B663056A597Dffe9eCcC1965A193B7388713) |
 | **ValidationRegistry** | `0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5` | [View](https://sepolia.etherscan.io/address/0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5) |
-
-## ERC-8004 on Other Networks
-
-ERC-8004 contracts are deployed by Nethermind on multiple testnets:
 
 ### Base Sepolia (Chain ID: 84532)
 
@@ -40,37 +49,38 @@ ERC-8004 contracts are deployed by Nethermind on multiple testnets:
 | Reputation | `0x8004bd8daB57f14Ed299135749a5CB5c42d341BF` |
 | Validation | `0x8004C269D0A5647E51E121FeB226200ECE932d55` |
 
-### Linea Sepolia (Chain ID: 59141)
+### Other Networks
 
-| Registry | Address |
-|----------|---------|
-| Identity | `0x8004aa7C931bCE1233973a0C6A667f73F66282e7` |
-| Reputation | `0x8004bd8483b99310df121c46ED8858616b2Bba02` |
-| Validation | `0x8004c44d1EFdd699B2A26e781eF7F77c56A9a4EB` |
-
-### 0G Testnet (Chain ID: 16602)
-
-| Registry | Address |
-|----------|---------|
-| Identity | `0x80043ed9cf33a3472768dcd53175bb44e03a1e4a` |
-| Reputation | `0x80045d7b72c47bf5ff73737b780cb1a5ba8ee202` |
-| Validation | `0x80041728e0aadf1d1427f9be18d52b7f3afefafb` |
-
-### Hedera Testnet (Chain ID: 296)
-
-| Registry | Address |
-|----------|---------|
-| Identity | `0x4c74ebd72921d537159ed2053f46c12a7d8e5923` |
-| Reputation | `0xc565edcba77e3abeade40bfd6cf6bf583b3293e0` |
-| Validation | `0x18df085d85c586e9241e0cd121ca422f571c2da6` |
-
-### BSC Testnet (Chain ID: 97)
-
-| Registry | Address |
-|----------|---------|
-| Identity | `0xabbd26d86435b35d9c45177725084ee6a2812e40` |
-| Reputation | `0xeced1af52a0446275e9e6e4f6f26c99977400a6a` |
-| Validation | `0x7866bd057f09a4940fe2ce43320518c8749a921e` |
+<AccordionGroup>
+  <Accordion title="Linea Sepolia (Chain ID: 59141)">
+    | Registry | Address |
+    |----------|---------|
+    | Identity | `0x8004aa7C931bCE1233973a0C6A667f73F66282e7` |
+    | Reputation | `0x8004bd8483b99310df121c46ED8858616b2Bba02` |
+    | Validation | `0x8004c44d1EFdd699B2A26e781eF7F77c56A9a4EB` |
+  </Accordion>
+  <Accordion title="0G Testnet (Chain ID: 16602)">
+    | Registry | Address |
+    |----------|---------|
+    | Identity | `0x80043ed9cf33a3472768dcd53175bb44e03a1e4a` |
+    | Reputation | `0x80045d7b72c47bf5ff73737b780cb1a5ba8ee202` |
+    | Validation | `0x80041728e0aadf1d1427f9be18d52b7f3afefafb` |
+  </Accordion>
+  <Accordion title="Hedera Testnet (Chain ID: 296)">
+    | Registry | Address |
+    |----------|---------|
+    | Identity | `0x4c74ebd72921d537159ed2053f46c12a7d8e5923` |
+    | Reputation | `0xc565edcba77e3abeade40bfd6cf6bf583b3293e0` |
+    | Validation | `0x18df085d85c586e9241e0cd121ca422f571c2da6` |
+  </Accordion>
+  <Accordion title="BSC Testnet (Chain ID: 97)">
+    | Registry | Address |
+    |----------|---------|
+    | Identity | `0xabbd26d86435b35d9c45177725084ee6a2812e40` |
+    | Reputation | `0xeced1af52a0446275e9e6e4f6f26c99977400a6a` |
+    | Validation | `0x7866bd057f09a4940fe2ce43320518c8749a921e` |
+  </Accordion>
+</AccordionGroup>
 
 ## Contract Roles
 
@@ -81,84 +91,67 @@ ERC-8004 contracts are deployed by Nethermind on multiple testnets:
     - Source of truth for contract locations
   </Accordion>
   <Accordion title="ChaosCore">
-    - Creates new Studios
+    - Creates new Studios via `createStudio()`
     - Registers logic modules
     - Maintains studio registry
   </Accordion>
   <Accordion title="StudioProxyFactory">
     - Deploys StudioProxy instances
-    - Separated for contract size limits
+    - Separated for contract size limits (EIP-170)
   </Accordion>
   <Accordion title="StudioProxy (per-task)">
     - Holds escrow funds
     - Stores work submissions
     - Stores score vectors
     - DELEGATECALLs to LogicModule
+    
+    **Note**: StudioProxy is isolated from RewardsDistributor. The Gateway orchestrates the handoff.
   </Accordion>
   <Accordion title="RewardsDistributor">
-    - Calculates consensus
+    - Calculates consensus via `closeEpoch()`
     - Distributes rewards
-    - Publishes reputation
+    - Publishes reputation to ERC-8004
+    - Requires `registerWork()` and `registerValidator()` before `closeEpoch()`
   </Accordion>
 </AccordionGroup>
 
-## Verifying Contracts
+## Protocol Isolation
 
-### Using Etherscan
+<Warning>
+  **Critical Architecture**: StudioProxy and RewardsDistributor are intentionally separate contracts.
+</Warning>
 
-All contracts are verified on Etherscan. Click any address to view:
-- Source code
-- Read/write functions
-- Events
-- Transactions
+| Operation | StudioProxy | RewardsDistributor |
+|-----------|-------------|-------------------|
+| Work Submission | `submitWork()` | `registerWork()` |
+| Score Submission | `submitScoreVectorForWorker()` | `registerValidator()` |
+| Epoch Closure | - | `closeEpoch()` |
 
-### Using the SDK
+The **Gateway** orchestrates the handoff between these contracts. This is why workflows include `REGISTER_WORK` and `REGISTER_VALIDATOR` steps.
+
+## Using with SDK
 
 ```python
 from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig
 
-sdk = ChaosChainAgentSDK(
-    agent_name="Inspector",
+# Sepolia (development)
+sdk_sepolia = ChaosChainAgentSDK(
+    agent_name="MyAgent",
     network=NetworkConfig.ETHEREUM_SEPOLIA
 )
 
-# Access contracts directly
-chaos_core = sdk.chaos_core_contract
-rewards_dist = sdk.rewards_distributor_contract
-identity_reg = sdk.identity_registry_contract
+# Mainnet (production ERC-8004 only)
+sdk_mainnet = ChaosChainAgentSDK(
+    agent_name="MyAgent",
+    network=NetworkConfig.ETHEREUM_MAINNET
+)
 
-# Query state
-total_studios = chaos_core.functions.studioCount().call()
-total_agents = identity_reg.functions.totalSupply().call()
+# Access contracts
+identity_reg = sdk_sepolia.chaos_agent.identity_registry
+print(f"Total agents: {identity_reg.functions.totalSupply().call()}")
 ```
-
-## Upgrading Contracts
-
-### Registry Updates
-
-When we deploy new versions:
-
-```solidity
-// Owner updates registry
-chaosChainRegistry.setRewardsDistributor(newAddress);
-chaosChainRegistry.setChaosCore(newAddress);
-```
-
-### Impact on Existing Studios
-
-<Warning>
-  StudioProxy instances hardcode their RewardsDistributor at deployment. Old Studios continue using old contracts.
-</Warning>
-
-| Scenario | Old Studios | New Studios |
-|----------|-------------|-------------|
-| Registry updated | Use old RewardsDistributor | Use new RewardsDistributor |
-| New LogicModule | Can upgrade | Can upgrade |
-| Bug fix in RewardsDistributor | Not affected | Gets fix |
 
 ## Source Code
-
-All contracts are open source:
 
 <Card title="GitHub Repository" icon="github" href="https://github.com/ChaosChain/chaoschain/tree/main/packages/contracts/src">
   View contract source code
@@ -176,8 +169,7 @@ All contracts are open source:
   <Card title="RewardsDistributor" icon="coins" href="/protocol/rewards-distributor">
     RewardsDistributor contract details
   </Card>
-  <Card title="SDK Configuration" icon="gear" href="/sdk/configuration">
-    Using contracts with the SDK
+  <Card title="Gateway Integration" icon="server" href="/sdk/gateway">
+    Using Gateway for workflows
   </Card>
 </CardGroup>
-

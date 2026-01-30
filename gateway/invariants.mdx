@@ -1,0 +1,193 @@
+---
+title: "Design Invariants"
+description: "Non-negotiable rules that define the Gateway's boundaries"
+---
+
+## Overview
+
+These invariants define the **hard boundaries** of the Gateway and MUST be preserved in all implementations. The Gateway is **not part of the protocol** and **must not contain protocol logic**.
+
+<Warning>
+  Violating these invariants will break the system's trust model. If you think you need to violate one, STOP and reconsider your design.
+</Warning>
+
+## Invariant 1: Source of Truth
+
+**The blockchain is the sole source of truth.**
+
+The Gateway MAY cache state for efficiency, but:
+- Cached state is always **derivative**
+- Cached state must be **reconcilable**
+- Cached state must be **discardable**
+
+```
+✅ Gateway reads on-chain state to reconcile
+✅ Gateway caches tx status for efficiency
+❌ Gateway stores "canonical" state
+❌ Gateway overrides on-chain data
+```
+
+The Gateway MUST always be able to recover by re-reading on-chain state.
+
+## Invariant 2: Authority
+
+**The Gateway has no protocol authority.**
+
+| Gateway CAN | Gateway CANNOT |
+|-------------|----------------|
+| ✅ Orchestrate workflows | ❌ Infer consensus results |
+| ✅ Sequence actions | ❌ Compute rewards |
+| ✅ Submit transactions | ❌ Validate scores |
+| ✅ Observe finalized events | ❌ Override on-chain checks |
+
+All authoritative decisions occur **on-chain**.
+
+## Invariant 3: Protocol Isolation
+
+**The Gateway must not reimplement protocol logic.**
+
+```
+❌ Duplicate on-chain calculations off-chain
+❌ Introduce alternative execution paths
+❌ Add "optimizations" that bypass contracts
+```
+
+If a workflow step depends on protocol behavior, the Gateway MUST:
+1. Submit the appropriate transaction
+2. Wait for finality
+3. Observe the resulting event/state
+
+## Invariant 4: Failure-First Design
+
+**The Gateway assumes everything fails.**
+
+- Processes crash
+- RPC calls fail
+- Transactions revert
+- Events arrive late or out of order
+
+Therefore:
+- Every workflow step MUST be resumable
+- Every step MUST be idempotent
+- Retries MUST be safe
+- No step may rely on in-memory state alone
+
+A Gateway restart must **never** corrupt protocol state.
+
+## Invariant 5: Idempotency
+
+**All Gateway actions MUST be idempotent.**
+
+| Action | Requirement |
+|--------|-------------|
+| Submit same transaction twice | MUST NOT cause double effects |
+| Reprocess same event | MUST NOT advance state incorrectly |
+| Restart workflow | MUST NOT repeat irreversible actions |
+
+Idempotency is achieved via:
+- Deterministic identifiers
+- On-chain existence checks
+- Workflow state reconciliation
+
+## Invariant 6: Product Neutrality
+
+**The Gateway is product-agnostic.**
+
+```
+❌ Encode studio-specific logic
+❌ Assume specific agent behaviors
+❌ Hardcode scoring semantics
+❌ Optimize for a single product
+```
+
+Studios and products are built **on top of** the Gateway, not inside it.
+
+## Invariant 7: DKG Purity
+
+**The DKG Engine MUST be a pure function over evidence.**
+
+```
+DKG(evidence) → (DAG, weights)
+
+Where:
+- evidence = { arweave_tx_ids[], message_contents[], signatures[] }
+- Same evidence → identical DAG → identical weights
+- Every time. No exceptions.
+```
+
+| Constraint | Meaning | Violation Example |
+|------------|---------|-------------------|
+| **No hidden state** | Cannot depend on state outside evidence | ❌ "Use cached reputation scores" |
+| **No time-based behavior** | Result cannot vary based on when it runs | ❌ "Apply decay factor based on timestamp" |
+| **No randomness** | No RNG, no sampling | ❌ "Randomly sample paths for Shapley" |
+| **No external calls** | Cannot fetch additional data | ❌ "Query IdentityRegistry during calc" |
+| **Deterministic ordering** | Iteration order must be deterministic | ❌ "Iterate over hashmap in insertion order" |
+
+### Why Purity Matters
+
+1. **Disputes are trivial** — Anyone can recompute and compare
+2. **Gateway is replaceable** — Any conforming implementation produces identical results
+3. **Prevents manipulation** — Cannot tune algorithm based on who's asking
+4. **On-chain commitment is meaningful** — `evidenceRoot` uniquely determines output
+
+## Invariant 8: TX Serialization
+
+**Transaction submission MUST be serialized per signer.**
+
+```
+For each signing key K:
+  - There is exactly ONE nonce stream
+  - At most ONE transaction may be pending at a time
+  - The workflow engine MUST wait for confirmation before submitting next tx
+```
+
+### Why Serialization Matters
+
+| Problem | Cause | Consequence |
+|---------|-------|-------------|
+| **Nonce race** | Two workflows submit tx with same nonce | One fails with "nonce too low" |
+| **Stuck workflow** | Tx A fails, Tx B with nonce+1 stuck forever | Workflow hangs indefinitely |
+| **Ghost failure** | Gateway submits tx, doesn't wait, next tx succeeds | State corruption |
+| **Reorg confusion** | Tx confirmed, reorg, tx pending again | Unpredictable behavior |
+
+### Multi-Key Strategy
+
+If parallelism is needed, use **multiple signing keys**:
+
+| Key | Purpose | Workflows |
+|-----|---------|-----------|
+| `gateway-key-1` | Worker submissions | Studios A-M |
+| `gateway-key-2` | Worker submissions | Studios N-Z |
+| `gateway-key-3` | Epoch closing | All studios |
+
+Each key has its own serialized nonce stream. Parallelism comes from multiple keys, not parallel submission from one key.
+
+## Summary Table
+
+| # | Invariant | One-Line Rule |
+|---|-----------|---------------|
+| 1 | Source of Truth | Blockchain wins, always |
+| 2 | Authority | Gateway doesn't decide, contracts do |
+| 3 | Protocol Isolation | Don't reimplement contracts off-chain |
+| 4 | Failure-First | Assume everything crashes |
+| 5 | Idempotency | Safe to retry any action |
+| 6 | Product Neutrality | No studio-specific logic |
+| 7 | DKG Purity | Same input → same output |
+| 8 | TX Serialization | One pending tx per signer |
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Workflow Engine" icon="gears" href="/gateway/workflow-engine">
+    How workflows enforce these invariants
+  </Card>
+  <Card title="Workflows" icon="diagram-project" href="/gateway/workflows">
+    Workflow definitions
+  </Card>
+  <Card title="Architecture" icon="building" href="/overview/architecture">
+    System architecture
+  </Card>
+  <Card title="Protocol Spec" icon="file-contract" href="/protocol/overview">
+    On-chain protocol specification
+  </Card>
+</CardGroup>

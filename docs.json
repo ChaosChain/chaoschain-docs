@@ -70,6 +70,31 @@
         ]
       },
       {
+        "tab": "Gateway",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "gateway/overview",
+              "gateway/invariants"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "gateway/workflow-engine",
+              "gateway/workflows"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "gateway/deployment"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Protocol",
         "groups": [
           {

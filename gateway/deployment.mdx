@@ -1,0 +1,352 @@
+---
+title: "Self-Hosting"
+description: "Run your own ChaosChain Gateway"
+---
+
+## Overview
+
+The ChaosChain Gateway can be self-hosted for:
+- **Development**: Local testing without public Gateway
+- **Production**: Full control over infrastructure
+- **Enterprise**: Private deployments with custom requirements
+
+<Info>
+  The public Gateway at `https://gateway.chaoscha.in` is available for development and production use.
+</Info>
+
+## Prerequisites
+
+- Node.js 20+ LTS
+- PostgreSQL 15+
+- Docker (recommended)
+- Ethereum RPC endpoint (Alchemy, Infura, etc.)
+- Arweave Turbo credentials (for production)
+
+## Quick Start with Docker
+
+```bash
+# Clone the repo
+git clone https://github.com/ChaosChain/chaoschain.git
+cd chaoschain/packages/gateway
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your settings
+nano .env
+
+# Start with Docker Compose
+docker-compose up -d
+```
+
+### Docker Compose Configuration
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  gateway:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://chaoschain:password@postgres:5432/chaoschain_gateway
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: chaoschain
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: chaoschain_gateway
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+```
+
+## Environment Variables
+
+### Required Variables
+
+```bash
+# .env
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DATABASE
+# ═══════════════════════════════════════════════════════════════════════════════
+DATABASE_URL=postgresql://user:password@localhost:5432/chaoschain_gateway
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BLOCKCHAIN
+# ═══════════════════════════════════════════════════════════════════════════════
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_API_KEY
+CHAIN_ID=11155111
+
+# Signer for submitting transactions
+SIGNER_PRIVATE_KEY=0x...
+
+# Additional signers (optional, for parallelism)
+SIGNER_PRIVATE_KEY_2=0x...
+SIGNER_PRIVATE_KEY_3=0x...
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONTRACTS (Sepolia v0.4.30)
+# ═══════════════════════════════════════════════════════════════════════════════
+CHAOS_CORE_ADDRESS=0xF6a57f04736A52a38b273b0204d636506a780E67
+REWARDS_DISTRIBUTOR_ADDRESS=0x0549772a3fF4F095C57AEFf655B3ed97B7925C19
+```
+
+### Optional Variables
+
+```bash
+# ═══════════════════════════════════════════════════════════════════════════════
+# STORAGE
+# ═══════════════════════════════════════════════════════════════════════════════
+ARWEAVE_ENABLED=true
+TURBO_API_KEY=your_turbo_api_key
+
+# For development without Arweave
+ARWEAVE_MOCK=true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SERVER
+# ═══════════════════════════════════════════════════════════════════════════════
+PORT=3000
+LOG_LEVEL=info
+NODE_ENV=production
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LIMITS
+# ═══════════════════════════════════════════════════════════════════════════════
+MAX_CONCURRENT_WORKFLOWS=100
+STEP_TIMEOUT_MS=300000  # 5 minutes
+```
+
+## Manual Setup
+
+### 1. Install Dependencies
+
+```bash
+cd packages/gateway
+npm install
+```
+
+### 2. Set Up PostgreSQL
+
+```bash
+# Create database
+createdb chaoschain_gateway
+
+# Or with Docker
+docker run -d \
+  --name gateway-postgres \
+  -e POSTGRES_USER=chaoschain \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=chaoschain_gateway \
+  -p 5432:5432 \
+  postgres:15
+```
+
+### 3. Run Migrations
+
+```bash
+npm run migrate
+```
+
+### 4. Start the Gateway
+
+```bash
+# Development
+npm run dev
+
+# Production
+npm run build
+npm start
+```
+
+## Health Check
+
+```bash
+curl http://localhost:3000/health
+```
+
+Expected response:
+```json
+{
+  "status": "ok",
+  "timestamp": 1706700000000
+}
+```
+
+## Verifying Setup
+
+### Create a Test Workflow
+
+```python
+from chaoschain_sdk import GatewayClient
+
+gateway = GatewayClient("http://localhost:3000")
+
+# Check health
+status = gateway.health_check()
+print(f"Gateway: {status['status']}")
+
+# Submit a test workflow
+result = gateway.submit_work(
+    studio_address="0xYourStudio...",
+    data_hash="0x" + "00" * 32,
+    thread_root="0x" + "00" * 32,
+    evidence_root="0x" + "00" * 32,
+    signer_address="0xYourSigner..."
+)
+
+print(f"Workflow ID: {result.workflow_id}")
+```
+
+## Production Deployment
+
+### Recommended Infrastructure
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     PRODUCTION SETUP                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   ┌─────────────────┐                                       │
+│   │   Load Balancer │ ◄── Cloudflare / AWS ALB              │
+│   │   (TLS termination)                                      │
+│   └────────┬────────┘                                       │
+│            │                                                 │
+│   ┌────────┴────────┐                                       │
+│   │   Gateway x N   │ ◄── Railway / Fly.io / K8s            │
+│   │   (stateless)   │                                       │
+│   └────────┬────────┘                                       │
+│            │                                                 │
+│   ┌────────┴────────┐                                       │
+│   │   PostgreSQL    │ ◄── Managed (RDS, Supabase, Neon)     │
+│   │   (persistent)  │                                       │
+│   └─────────────────┘                                       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Environment for Production
+
+```bash
+# Production .env
+NODE_ENV=production
+PORT=3000
+LOG_LEVEL=info
+
+DATABASE_URL=postgresql://user:password@your-managed-db:5432/chaoschain_gateway
+
+RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
+CHAIN_ID=1
+
+SIGNER_PRIVATE_KEY=0x...  # Use secrets manager
+
+ARWEAVE_ENABLED=true
+TURBO_API_KEY=your_production_key
+```
+
+### Security Checklist
+
+<Warning>
+  Follow these security practices for production deployments.
+</Warning>
+
+- [ ] Use secrets manager for private keys (Vault, AWS Secrets Manager)
+- [ ] Enable TLS termination at load balancer
+- [ ] Set up database connection pooling
+- [ ] Configure rate limiting
+- [ ] Enable structured logging to observability platform
+- [ ] Set up alerts for workflow failures
+- [ ] Implement backup strategy for PostgreSQL
+- [ ] Use multiple signers for parallelism and redundancy
+
+## Monitoring
+
+### Key Metrics
+
+| Metric | Description | Alert Threshold |
+|--------|-------------|-----------------|
+| `workflow_count` | Total workflows by type, state | - |
+| `workflow_duration_ms` | P50, P95, P99 duration | P99 > 5min |
+| `step_failures` | Failures by step | > 10/hour |
+| `tx_queue_depth` | Pending transactions per signer | > 5 |
+| `arweave_upload_time_ms` | Arweave upload duration | P95 > 30s |
+
+### Logging
+
+```bash
+# Example log output
+{"level":"info","workflow_id":"abc-123","step":"SUBMIT_WORK_ONCHAIN","message":"Submitting transaction"}
+{"level":"info","workflow_id":"abc-123","step":"SUBMIT_WORK_ONCHAIN","tx_hash":"0x...","message":"Transaction submitted"}
+{"level":"info","workflow_id":"abc-123","state":"COMPLETED","message":"Workflow completed"}
+```
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Workflows stuck in RUNNING">
+    **Cause**: Gateway crashed mid-workflow or database connection lost.
+    
+    **Solution**: Gateway automatically reconciles on restart. Check logs for reconciliation output.
+  </Accordion>
+  
+  <Accordion title="'No signer registered for address'">
+    **Cause**: Workflow requested a signer that isn't registered.
+    
+    **Solution**: Add the signer's private key to environment variables.
+  </Accordion>
+  
+  <Accordion title="Arweave uploads failing">
+    **Cause**: Invalid Turbo credentials or insufficient balance.
+    
+    **Solution**: Check `TURBO_API_KEY` and fund your Turbo account.
+  </Accordion>
+  
+  <Accordion title="'Nonce too low' errors">
+    **Cause**: Transaction submitted with stale nonce.
+    
+    **Solution**: Gateway should auto-recover. If persistent, check for duplicate signers.
+  </Accordion>
+</AccordionGroup>
+
+### Debug Mode
+
+```bash
+# Enable debug logging
+LOG_LEVEL=debug npm run dev
+```
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Gateway Overview" icon="server" href="/gateway/overview">
+    What the Gateway does
+  </Card>
+  <Card title="Workflows" icon="diagram-project" href="/gateway/workflows">
+    Workflow definitions
+  </Card>
+  <Card title="SDK Integration" icon="code" href="/sdk/gateway">
+    Using Gateway from the SDK
+  </Card>
+  <Card title="Contract Addresses" icon="link" href="/protocol/contracts">
+    Deployed contract addresses
+  </Card>
+</CardGroup>

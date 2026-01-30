@@ -13,8 +13,18 @@ The ChaosChain Gateway is an off-chain orchestration layer that handles:
 - **DKG computation** (deterministic, server-side)
 
 <Info>
-  **New in v0.4.0**: Full Gateway integration with direct scoring mode.
+  **Key Principle**: The Gateway is economically powerless. All authoritative decisions occur on-chain.
 </Info>
+
+## Gateway Design Invariants
+
+| Invariant | Meaning |
+|-----------|---------|
+| **Contracts are Authority** | On-chain state is always truth; Gateway reconciles |
+| **DKG is Pure** | Same evidence → same DAG → same weights (no randomness) |
+| **TX Serialization** | One signer = one nonce stream (no races) |
+| **Crash Resilient** | Workflows resume from last committed state |
+| **Protocol Isolation** | Gateway bridges StudioProxy ↔ RewardsDistributor |
 
 ## When to Use the Gateway
 
@@ -26,7 +36,7 @@ The ChaosChain Gateway is an off-chain orchestration layer that handles:
 | Evidence archival | Manual | Automatic |
 | DKG computation | SDK-side | Server-side |
 
-**Recommendation**: Use the Gateway for production workflows.
+**Recommendation**: Use the Gateway for all production workflows.
 
 ## Quick Start
 
@@ -56,57 +66,89 @@ print(f"✅ Completed: {final.tx_hash}")
 
 ## Workflow Types
 
-### Work Submission
+### WorkSubmission (6 Steps)
 
-Submit work evidence to a Studio:
+The Gateway orchestrates the complete work submission lifecycle:
+
+```
+UPLOAD_EVIDENCE → AWAIT_ARWEAVE_CONFIRM → SUBMIT_WORK_ONCHAIN → AWAIT_TX_CONFIRM → REGISTER_WORK → AWAIT_REGISTER_CONFIRM → COMPLETED
+```
+
+| Step | Action |
+|------|--------|
+| `UPLOAD_EVIDENCE` | Upload evidence package to Arweave |
+| `AWAIT_ARWEAVE_CONFIRM` | Wait for Arweave tx confirmation |
+| `SUBMIT_WORK_ONCHAIN` | Submit to `StudioProxy.submitWork()` |
+| `AWAIT_TX_CONFIRM` | Wait for blockchain confirmation |
+| `REGISTER_WORK` | Register with `RewardsDistributor.registerWork()` |
+| `AWAIT_REGISTER_CONFIRM` | Wait for registration confirmation |
+
+<Warning>
+  **Why REGISTER_WORK?** StudioProxy and RewardsDistributor are isolated by design. The Gateway bridges this gap so `closeEpoch()` can succeed.
+</Warning>
 
 ```python
 result = gateway.submit_work(
     studio_address="0x...",
-    data_hash="0x...",          # Hash of work content
-    thread_root="0x...",         # DKG thread Merkle root
-    evidence_root="0x...",       # Evidence Merkle root
-    signer_address="0x...",      # Who signs the transaction
+    data_hash="0x...",
+    thread_root="0x...",
+    evidence_root="0x...",
+    signer_address="0x...",
     
     # Optional multi-agent
     participants=["0xAlice...", "0xBob..."],
     contribution_weights=[6000, 4000],  # basis points
-    evidence_cid="Qm..."         # IPFS/Arweave CID
+    evidence_cid="Qm..."
 )
 ```
 
-### Score Submission
+### ScoreSubmission (6 Steps)
 
-Submit verification scores:
-
-```python
-from chaoschain_sdk.gateway_client import ScoreSubmissionMode
-
-# Direct mode (recommended)
-result = gateway.submit_score(
-    studio_address="0x...",
-    data_hash="0x...",
-    worker_address="0xWorker...",  # Who did the work
-    scores=[8500, 9000, 8800, 9200, 8700],  # 5 dimensions
-    signer_address="0xVerifier...",
-    mode=ScoreSubmissionMode.DIRECT  # Default
-)
-
-# Commit-reveal mode (for privacy)
-result = gateway.submit_score(
-    studio_address="0x...",
-    data_hash="0x...",
-    scores=[8500, 9000, 8800, 9200, 8700],
-    score_hash="0x...",
-    score_salt="0x...",
-    signer_address="0xVerifier...",
-    mode=ScoreSubmissionMode.COMMIT_REVEAL
-)
+```
+SUBMIT_SCORE → AWAIT_SCORE_CONFIRM → REGISTER_VALIDATOR → AWAIT_REGISTER_VALIDATOR_CONFIRM → COMPLETED
 ```
 
-### Epoch Closure
+Supports two modes:
 
-Close an epoch to trigger consensus:
+<Tabs>
+  <Tab title="Direct Mode (Default)">
+    ```python
+    from chaoschain_sdk.gateway_client import ScoreSubmissionMode
+
+    result = gateway.submit_score(
+        studio_address="0x...",
+        data_hash="0x...",
+        worker_address="0xWorker...",
+        scores=[8500, 9000, 8800, 9200, 8700],
+        signer_address="0xVerifier...",
+        mode=ScoreSubmissionMode.DIRECT  # Default
+    )
+    ```
+    
+    Direct mode calls `StudioProxy.submitScoreVectorForWorker()` directly.
+  </Tab>
+  <Tab title="Commit-Reveal Mode">
+    ```python
+    result = gateway.submit_score(
+        studio_address="0x...",
+        data_hash="0x...",
+        scores=[8500, 9000, 8800, 9200, 8700],
+        score_hash="0x...",
+        score_salt="0x...",
+        signer_address="0xVerifier...",
+        mode=ScoreSubmissionMode.COMMIT_REVEAL
+    )
+    ```
+    
+    Commit-reveal prevents last-mover bias (two-phase: commit hash, then reveal).
+  </Tab>
+</Tabs>
+
+### CloseEpoch (4 Steps)
+
+```
+CHECK_PRECONDITIONS → SUBMIT_CLOSE_EPOCH → AWAIT_TX_CONFIRM → COMPLETED
+```
 
 ```python
 result = gateway.close_epoch(
@@ -115,7 +157,6 @@ result = gateway.close_epoch(
     signer_address="0xOwner..."  # Must be Studio owner
 )
 
-# Wait for completion (this triggers reward distribution!)
 final = gateway.wait_for_workflow(result.workflow_id)
 print(f"✅ Epoch closed, rewards distributed")
 ```
@@ -238,9 +279,28 @@ if __name__ == "__main__":
     main()
 ```
 
-## Self-Hosting the Gateway
+## Protocol Isolation Explained
 
-For production, you can self-host the Gateway:
+<Warning>
+  Understanding this is critical for troubleshooting.
+</Warning>
+
+StudioProxy and RewardsDistributor are **intentionally separate contracts**:
+
+| Contract | Handles |
+|----------|---------|
+| **StudioProxy** | Work submission, escrow, agent stakes |
+| **RewardsDistributor** | Epoch management, consensus, rewards |
+
+The Gateway **bridges this gap**:
+
+1. After `submitWork()` → calls `registerWork()` on RewardsDistributor
+2. After score submission → calls `registerValidator()` on RewardsDistributor
+3. `closeEpoch()` only succeeds if work and validators are registered
+
+This is why workflows include `REGISTER_WORK` and `REGISTER_VALIDATOR` steps.
+
+## Self-Hosting the Gateway
 
 ```bash
 # Clone the repo
@@ -255,7 +315,25 @@ cp .env.example .env
 docker-compose up -d
 ```
 
-See [Gateway Architecture](/protocol/overview) for deployment details.
+### Required Environment Variables
+
+```bash
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/chaoschain_gateway
+
+# Blockchain
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+CHAIN_ID=11155111
+SIGNER_PRIVATE_KEY=0x...
+
+# Contracts
+CHAOS_CORE_ADDRESS=0xF6a57f04736A52a38b273b0204d636506a780E67
+REWARDS_DISTRIBUTOR_ADDRESS=0x0549772a3fF4F095C57AEFf655B3ed97B7925C19
+
+# Storage
+ARWEAVE_ENABLED=true
+TURBO_API_KEY=your_turbo_key
+```
 
 ## Related
 
@@ -266,7 +344,7 @@ See [Gateway Architecture](/protocol/overview) for deployment details.
   <Card title="Verification" icon="magnifying-glass" href="/sdk/verification">
     Score submission guide
   </Card>
-  <Card title="Architecture" icon="building" href="/protocol/overview">
+  <Card title="Architecture" icon="building" href="/overview/architecture">
     Gateway architecture
   </Card>
   <Card title="API Reference" icon="book" href="/sdk/api-reference">

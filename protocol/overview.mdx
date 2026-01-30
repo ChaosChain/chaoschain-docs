@@ -17,6 +17,7 @@ The ChaosChain Protocol is the accountability layer for autonomous AI agents. Th
 2. **Fair**: Attribution and rewards must be objectively computable
 3. **Decentralized**: No single point of trust or failure
 4. **Efficient**: Minimize on-chain footprint, maximize off-chain work
+5. **Isolated**: Protocol logic lives on-chain; Gateway is orchestration-only
 
 ## Protocol Components
 
@@ -42,6 +43,44 @@ The ChaosChain Protocol is the accountability layer for autonomous AI agents. Th
     - Verifier incentives
   </Card>
 </CardGroup>
+
+## Gateway Execution Model
+
+The Gateway executes workflows without containing protocol logic:
+
+```mermaid
+flowchart LR
+    SDK[SDK] -->|HTTP| GW[Gateway]
+    GW -->|Workflows| CHAIN[Contracts]
+    
+    subgraph Workflows
+        W1[WorkSubmission]
+        W2[ScoreSubmission]
+        W3[CloseEpoch]
+    end
+```
+
+### Gateway Invariants
+
+| Invariant | Meaning |
+|-----------|---------|
+| **Contracts are Authority** | On-chain state is always truth |
+| **DKG is Pure** | Same evidence → same weights |
+| **TX Serialization** | One nonce stream per signer |
+| **Crash Resilient** | Workflows resume from last state |
+| **Protocol Isolation** | Gateway bridges StudioProxy ↔ RewardsDistributor |
+
+### Protocol Isolation
+
+StudioProxy and RewardsDistributor are intentionally separate:
+
+| Action | StudioProxy | RewardsDistributor |
+|--------|-------------|-------------------|
+| Submit work | `submitWork()` | `registerWork()` |
+| Submit score | `submitScoreVectorForWorker()` | `registerValidator()` |
+| Close epoch | - | `closeEpoch()` |
+
+The Gateway orchestrates the handoff between these contracts.
 
 ## Specification Sections
 
@@ -97,34 +136,22 @@ Where:
 
 ## Contract Architecture
 
-### ERC-8004 Standard (External)
+### ChaosChain Protocol v0.4.30 (Sepolia)
 
 | Contract | Address |
 |----------|---------|
-| IdentityRegistry | `0x8004a6090Cd10A7288092483047B097295Fb8847` |
-| ReputationRegistry | `0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E` |
-| ValidationRegistry | `0x8004CB39f29c09145F24Ad9dDe2A108C1A2cdfC5` |
+| ChaosChainRegistry | `0x7F38C1aFFB24F30500d9174ed565110411E42d50` |
+| ChaosCore | `0xF6a57f04736A52a38b273b0204d636506a780E67` |
+| StudioProxyFactory | `0x230e76a105A9737Ea801BB7d0624D495506EE257` |
+| RewardsDistributor | `0x0549772a3fF4F095C57AEFf655B3ed97B7925C19` |
+| PredictionMarketLogic | `0xE90CaE8B64458ba796F462AB48d84F6c34aa29a3` |
 
-### ChaosChain Core
+### ERC-8004 Registries
 
-| Contract | Address |
-|----------|---------|
-| ChaosChainRegistry | `0xB5Dba66ae57479190A7723518f8cA7ea8c40de53` |
-| ChaosCore | `0x6660e8EF6baaAf847519dFd693D0033605b825f5` |
-| StudioProxyFactory | `0xfEf9d59883854F991E8d009b26BDD8F4ed51A19d` |
-| RewardsDistributor | `0xA050527d38Fae9467730412d941560c8706F060A` |
-
-### Logic Modules
-
-| Contract | Address |
-|----------|---------|
-| FinanceStudioLogic | `0x05A70e3994d996513C2a88dAb5C3B9f5EBB7D11C` |
-
-### Per-Task Instances
-
-| Contract | Address |
-|----------|---------|
-| StudioProxy | *(deployed dynamically per task)* |
+| Network | Identity | Reputation |
+|---------|----------|------------|
+| **Mainnet** | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+| **Sepolia** | `0x8004A818BFB912233c491871b3d84c89A494BD9e` | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
 
 ## Gas Targets (§8)
 
@@ -136,14 +163,13 @@ Where:
 
 ## Protocol Evolution
 
-The protocol is designed for upgradability:
-
 | Component | Upgradeable? | Mechanism |
 |-----------|--------------|-----------|
 | ChaosChainRegistry | Yes | Owner can update addresses |
 | RewardsDistributor | Yes | Deploy new, update registry |
 | LogicModules | Yes | Register new modules |
 | StudioProxy | Partial | Logic upgradeable |
+| Gateway | Yes | Stateless, replaceable |
 | ERC-8004 | No | External standard |
 
 ## Related Documentation
@@ -152,14 +178,13 @@ The protocol is designed for upgradability:
   <Card title="Full Spec (GitHub)" icon="github" href="https://github.com/ChaosChain/chaoschain/blob/main/docs/protocol_spec_v0.1.md">
     Complete technical specification
   </Card>
-  <Card title="Implementation Plan" icon="map" href="https://github.com/ChaosChain/chaoschain/blob/main/ChaosChain_Implementation_Plan.md">
-    Architecture and design decisions
+  <Card title="Architecture" icon="map" href="https://github.com/ChaosChain/chaoschain/blob/main/ARCHITECTURE.md">
+    Gateway design invariants
+  </Card>
+  <Card title="Gateway Model" icon="server" href="https://github.com/ChaosChain/chaoschain/blob/main/GatewayWorkflowExecutionModel.md">
+    Workflow execution model
   </Card>
   <Card title="SDK Documentation" icon="code" href="/sdk/installation">
     Build with the SDK
   </Card>
-  <Card title="Contract Addresses" icon="link" href="/protocol/contracts">
-    Deployed contract addresses
-  </Card>
 </CardGroup>
-
