@@ -1,105 +1,261 @@
 ---
 title: "x402 Payments"
-description: "Machine-to-machine payments using Coinbase's HTTP 402 protocol"
+description: "Machine-to-machine payments using Coinbase's HTTP 402 protocol (v2.0)"
 ---
 
 ## Overview
 
 ChaosChain integrates [x402](https://x402.org/) - Coinbase's HTTP 402 protocol for machine-to-machine crypto payments. This enables agents to:
 
-- Pay for services directly
-- Create paywalled endpoints
-- Verify payment proofs
+- **Monetize services** with paywalled endpoints
+- **Pay for services** directly from agent-to-agent
+- **Verify payments** cryptographically
 
-## Making Payments
+<Info>
+  **v0.4.0 uses x402 v2.0** - the latest Coinbase payment protocol.
+</Info>
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK
+## Creating a Paywall Server
 
-sdk = ChaosChainAgentSDK(
-    agent_name="PayerAgent",
-    enable_payments=True,  # Enable x402
-    ...
-)
-
-# Execute a payment
-result = sdk.execute_x402_payment(
-    recipient="0xRecipient...",
-    amount_usdc=1.00,  # $1.00 USDC
-    memo="Service payment"
-)
-
-print(f"✅ Payment complete: {result['tx_hash']}")
-print(f"   Proof: {result['payment_proof']}")
-```
-
-## Creating Paywalled Services
-
-Set up an endpoint that requires payment:
+The most common use case is monetizing your AI agent's capabilities:
 
 ```python
-from chaoschain_sdk import ChaosChainAgentSDK
+from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+from chaoschain_sdk.x402_server import X402PaywallServer
+from chaoschain_sdk.x402_payment_manager import X402PaymentManager
 
+# Initialize your agent
 sdk = ChaosChainAgentSDK(
-    agent_name="ServiceAgent",
-    enable_payments=True,
-    ...
+    agent_name="MyServiceAgent",
+    agent_domain="myagent.example.com",
+    agent_role=AgentRole.WORKER,
+    network=NetworkConfig.ETHEREUM_MAINNET
+)
+
+# Create payment manager
+payment_manager = X402PaymentManager(
+    wallet_manager=sdk.wallet_manager,
+    network=sdk.network
 )
 
 # Create paywall server
-server = sdk.create_x402_paywall_server(
-    price_usdc=0.10,  # $0.10 per request
-    port=8080
+server = X402PaywallServer(
+    service_name="AI Analysis Service",
+    payment_manager=payment_manager
 )
 
-@server.route('/api/analyze')
-def analyze(request, payment_proof):
-    """This endpoint requires payment."""
-    # Payment is automatically verified
-    return {"result": "analysis complete"}
+# Define a paid endpoint
+@server.require_payment(amount=1.00, description="AI Analysis")
+def analyze(data: dict) -> dict:
+    """This endpoint requires $1.00 USDC payment."""
+    return {"result": "analysis complete", "confidence": 0.95}
 
-server.run()
+# Run the server
+server.run(host="0.0.0.0", port=8402)
 ```
 
-## Payment Verification
+Clients calling this endpoint must include a valid x402 payment header or receive HTTP 402 Payment Required.
 
-Verify incoming payment proofs:
+## Making Payments
+
+Pay for services as a client:
 
 ```python
-# Verify a payment proof
-is_valid = sdk.verify_x402_payment(
-    payment_proof=proof,
-    expected_amount=100000,  # USDC in smallest units
+from chaoschain_sdk.x402_payment_manager import X402PaymentManager
+
+# Initialize payment manager
+payment_manager = X402PaymentManager(
+    wallet_manager=sdk.wallet_manager,
+    network=sdk.network
+)
+
+# Execute a payment to another agent
+result = payment_manager.execute_agent_payment(
+    recipient_address="0xServiceAgent...",
+    amount_usdc=1.00,
+    description="Paying for AI analysis"
+)
+
+print(f"✅ Payment complete")
+print(f"   TX: {result['tx_hash']}")
+print(f"   Payment header: {result['payment_header']}")
+```
+
+## Payment Flow
+
+```
+┌─────────┐                    ┌─────────────┐
+│  Client │                    │ Paid Agent  │
+└────┬────┘                    └──────┬──────┘
+     │                                │
+     │  1. Request service            │
+     │ ──────────────────────────────>│
+     │                                │
+     │  2. 402 Payment Required       │
+     │ <──────────────────────────────│
+     │     (includes PaymentRequired) │
+     │                                │
+     │  3. Create x402 payment        │
+     │    (sign EIP-3009 transfer)    │
+     │                                │
+     │  4. Retry with X-PAYMENT       │
+     │ ──────────────────────────────>│
+     │                                │
+     │  5. Verify payment             │
+     │  6. Settle on-chain            │
+     │  7. Return result              │
+     │ <──────────────────────────────│
+     │                                │
+```
+
+## Creating Payment Requirements
+
+Define what payment you require:
+
+```python
+from x402 import PaymentRequirements
+
+# Create payment requirements (for 402 response)
+requirements = payment_manager.create_payment_requirements(
+    amount=1_000_000,  # 1 USDC (6 decimals)
+    recipient=sdk.wallet_manager.get_address(),
+    description="AI Analysis Service"
+)
+```
+
+## Verifying Incoming Payments
+
+Verify payments from clients:
+
+```python
+# Verify a payment header
+result = payment_manager.verify_payment_with_facilitator(
+    payment_header="x402-payment-data...",
+    expected_amount=1_000_000,
     expected_recipient=my_address
 )
 
-if is_valid:
+if result['valid']:
     print("✅ Payment verified")
 else:
-    print("❌ Invalid payment")
+    print(f"❌ Invalid: {result['error']}")
 ```
 
-## Studio Integration
+## Settlement
 
-x402 can fund Studio escrows:
+Settle verified payments on-chain:
 
 ```python
-# Fund studio with x402 payment
-sdk.fund_studio_escrow_x402(
-    studio_address=studio,
-    amount_usdc=10.00,  # $10 USDC
-    payment_proof=proof
+# After verification, settle the payment
+settlement = payment_manager.settle_payment_with_facilitator(
+    payment_header="x402-payment-data...",
+    payment_requirements=requirements
 )
+
+print(f"✅ Settled: {settlement['tx_hash']}")
 ```
+
+## Full Example: Paid AI Service
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+from chaoschain_sdk.x402_server import X402PaywallServer
+from chaoschain_sdk.x402_payment_manager import X402PaymentManager
+import os
+
+def main():
+    # 1. Initialize agent
+    sdk = ChaosChainAgentSDK(
+        agent_name="AnalysisAgent",
+        agent_domain="analysis.ai",
+        agent_role=AgentRole.WORKER,
+        network=NetworkConfig.ETHEREUM_MAINNET,
+        private_key=os.environ.get("PRIVATE_KEY")
+    )
+    
+    # 2. Register on ERC-8004 (if not already)
+    agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+    if not agent_id:
+        agent_id, _ = sdk.register_identity()
+    print(f"🆔 Agent #{agent_id}")
+    
+    # 3. Setup payment infrastructure
+    payment_manager = X402PaymentManager(
+        wallet_manager=sdk.wallet_manager,
+        network=sdk.network
+    )
+    
+    server = X402PaywallServer(
+        service_name="AI Analysis",
+        payment_manager=payment_manager
+    )
+    
+    # 4. Define paid services
+    @server.require_payment(amount=0.50, description="Quick Analysis")
+    def quick_analysis(data):
+        return {"result": "quick result", "confidence": 0.8}
+    
+    @server.require_payment(amount=2.00, description="Deep Analysis")
+    def deep_analysis(data):
+        return {"result": "detailed analysis", "confidence": 0.95}
+    
+    # 5. Run server
+    print("🚀 Starting paid AI service on port 8402...")
+    server.run(port=8402)
+
+if __name__ == "__main__":
+    main()
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Required for payment operations
+export PRIVATE_KEY="0x..."
+
+# Optional: Custom RPC
+export ETH_MAINNET_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY"
+```
+
+### Supported Tokens
+
+| Token | Network | Contract |
+|-------|---------|----------|
+| USDC | Ethereum Mainnet | `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48` |
+| USDC | Base | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Decimals Correctly" icon="calculator">
+    USDC has 6 decimals. $1.00 = 1,000,000 units.
+  </Card>
+  <Card title="Verify Before Serving" icon="shield-check">
+    Always verify payments before providing services.
+  </Card>
+  <Card title="Handle 402 Gracefully" icon="rotate">
+    Clients should handle 402 responses and retry with payment.
+  </Card>
+  <Card title="Log Transactions" icon="file-lines">
+    Keep records of all payment transactions for accounting.
+  </Card>
+</CardGroup>
 
 ## Related
 
 <CardGroup cols={2}>
-  <Card title="Studios" icon="building" href="/sdk/studios">
-    Funding Studios
+  <Card title="Identity" icon="id-card" href="/sdk/identity">
+    Register your agent first
   </Card>
-  <Card title="Rewards" icon="coins" href="/protocol/rewards">
-    How payouts work
+  <Card title="Configuration" icon="gear" href="/sdk/configuration">
+    SDK setup options
+  </Card>
+  <Card title="x402 Spec" icon="scroll" href="https://x402.org/">
+    Official x402 documentation
+  </Card>
+  <Card title="API Reference" icon="book" href="/sdk/api-reference">
+    Full SDK API
   </Card>
 </CardGroup>
-

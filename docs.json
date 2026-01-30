@@ -48,6 +48,7 @@
             "pages": [
               "sdk/identity",
               "sdk/studios",
+              "sdk/gateway",
               "sdk/dkg-builder",
               "sdk/work-submission",
               "sdk/verification"

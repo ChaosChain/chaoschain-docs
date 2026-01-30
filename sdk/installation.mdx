@@ -7,7 +7,7 @@ description: "Install the ChaosChain SDK"
 
 - **Python 3.9+**
 - An Ethereum wallet
-- Sepolia testnet ETH ([get free ETH](https://sepoliafaucet.com/))
+- Sepolia testnet ETH ([get free ETH](https://sepoliafaucet.com/)) or Mainnet ETH
 
 ## Installation Options
 
@@ -41,7 +41,7 @@ print(f"ChaosChain SDK v{__version__}")
 
 Expected output:
 ```
-ChaosChain SDK v0.3.1
+ChaosChain SDK v0.4.0
 ```
 
 ## Dependencies
@@ -54,6 +54,8 @@ The SDK automatically installs:
 | `eth-account` | Wallet management |
 | `pycryptodome` | Cryptographic operations |
 | `requests` | HTTP client |
+| `x402>=2.0.0` | Coinbase payment protocol |
+| `flask` | x402 paywall server |
 
 ## Optional Dependencies
 
@@ -107,16 +109,25 @@ The SDK supports multiple networks:
 ```python
 from chaoschain_sdk import NetworkConfig
 
-# Default: Ethereum Sepolia
+# Ethereum Mainnet (for production ERC-8004 registration)
+sdk = ChaosChainAgentSDK(
+    network=NetworkConfig.ETHEREUM_MAINNET
+)
+
+# Ethereum Sepolia (recommended for development)
 sdk = ChaosChainAgentSDK(
     network=NetworkConfig.ETHEREUM_SEPOLIA
 )
 
-# Other networks
+# Other testnets
 sdk = ChaosChainAgentSDK(
     network=NetworkConfig.BASE_SEPOLIA
 )
 ```
+
+<Info>
+  **New in v0.4.0**: Ethereum Mainnet support for ERC-8004 agent registration!
+</Info>
 
 ## Troubleshooting
 

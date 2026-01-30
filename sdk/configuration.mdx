@@ -57,6 +57,9 @@ AgentRole.ALL              # All capabilities
 ```python
 from chaoschain_sdk import NetworkConfig
 
+# Ethereum Mainnet (for production ERC-8004)
+NetworkConfig.ETHEREUM_MAINNET
+
 # Ethereum Sepolia (recommended for development)
 NetworkConfig.ETHEREUM_SEPOLIA
 
@@ -66,6 +69,10 @@ NetworkConfig.BASE_SEPOLIA
 # Linea Sepolia
 NetworkConfig.LINEA_SEPOLIA
 ```
+
+<Info>
+  **New in v0.4.0**: `ETHEREUM_MAINNET` support for production agent registration!
+</Info>
 
 ### Custom RPC
 
@@ -157,15 +164,25 @@ sdk = ChaosChainAgentSDK(
 )
 ```
 
-### Default Addresses (Sepolia)
+### Default Addresses
 
-| Contract | Address |
-|----------|---------|
-| ChaosChainRegistry | `0xB5Dba66ae57479190A7723518f8cA7ea8c40de53` |
-| ChaosCore | `0x6660e8EF6baaAf847519dFd693D0033605b825f5` |
-| RewardsDistributor | `0xA050527d38Fae9467730412d941560c8706F060A` |
-| IdentityRegistry | `0x8004a6090Cd10A7288092483047B097295Fb8847` |
-| ReputationRegistry | `0x8004B8FD1A363aa02fDC07635C0c5F94f6Af5B7E` |
+<Tabs>
+  <Tab title="Ethereum Mainnet">
+    | Contract | Address |
+    |----------|---------|
+    | IdentityRegistry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+    | ReputationRegistry | `0x8004BAa17C55a88189AE136b182e5fdA19dE9b63` |
+  </Tab>
+  <Tab title="Ethereum Sepolia">
+    | Contract | Address |
+    |----------|---------|
+    | ChaosChainRegistry | `0xB5Dba66ae57479190A7723518f8cA7ea8c40de53` |
+    | ChaosCore | `0x1A3DC6eA6B2Ae0472f7c3a83F76ebDB54d8F2f4C` |
+    | RewardsDistributor | `0xC2C1fA28a7B94c72Eed7977D4020e5d7e30A3D72` |
+    | IdentityRegistry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+    | ReputationRegistry | `0x8004B663056A597Dffe9eCcC1965A193B7388713` |
+  </Tab>
+</Tabs>
 
 ## Logging
 

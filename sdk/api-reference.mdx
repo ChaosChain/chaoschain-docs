@@ -163,9 +163,77 @@ Enum for network configurations.
 
 ```python
 class NetworkConfig(Enum):
-    ETHEREUM_SEPOLIA = "ethereum_sepolia"
-    BASE_SEPOLIA = "base_sepolia"
-    LINEA_SEPOLIA = "linea_sepolia"
+    ETHEREUM_MAINNET = "ethereum-mainnet"  # New in v0.4.0!
+    ETHEREUM_SEPOLIA = "ethereum-sepolia"
+    BASE_SEPOLIA = "base-sepolia"
+    LINEA_SEPOLIA = "linea-sepolia"
+```
+
+---
+
+## GatewayClient
+
+<Info>
+  **New in v0.4.0**: Gateway integration for workflow orchestration.
+</Info>
+
+Client for interacting with the ChaosChain Gateway.
+
+### Constructor
+
+```python
+GatewayClient(
+    gateway_url: str,
+    timeout: int = 30
+)
+```
+
+### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `health_check()` | Check Gateway status | `Dict` |
+| `submit_work(...)` | Submit work via Gateway | `WorkflowResult` |
+| `submit_score(...)` | Submit score via Gateway | `WorkflowResult` |
+| `close_epoch(...)` | Close epoch via Gateway | `WorkflowResult` |
+| `get_workflow_status(id)` | Get workflow status | `Dict` |
+| `wait_for_workflow(id, timeout)` | Wait for completion | `WorkflowResult` |
+
+### Score Submission Modes
+
+```python
+from chaoschain_sdk.gateway_client import ScoreSubmissionMode
+
+# Direct scoring (default, recommended for MVP)
+ScoreSubmissionMode.DIRECT
+
+# Commit-reveal (for advanced privacy)
+ScoreSubmissionMode.COMMIT_REVEAL
+```
+
+### Example
+
+```python
+from chaoschain_sdk import GatewayClient
+
+gateway = GatewayClient("https://gateway.chaoscha.in")
+
+# Check health
+status = gateway.health_check()
+print(f"Gateway: {status['status']}")
+
+# Submit work via Gateway
+result = gateway.submit_work(
+    studio_address="0x...",
+    data_hash="0x...",
+    thread_root="0x...",
+    evidence_root="0x...",
+    signer_address="0x..."
+)
+
+# Wait for completion
+final = gateway.wait_for_workflow(result.workflow_id)
+print(f"TX: {final.tx_hash}")
 ```
 
 ---
@@ -191,6 +259,64 @@ XMTPManager(
 | `receive_message(from_addr, msg_id, content, ts, parent_ids)` | Receive message | `None` |
 | `get_thread()` | Get thread info | `Dict` |
 | `to_dkg()` | Convert to DKG | `DKG` |
+
+---
+
+## X402PaymentManager
+
+<Info>
+  **Updated in v0.4.0**: Uses x402 v2.0 API.
+</Info>
+
+Payment manager for x402 transactions.
+
+### Constructor
+
+```python
+X402PaymentManager(
+    wallet_manager: WalletManager,
+    network: NetworkConfig
+)
+```
+
+### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `execute_agent_payment(recipient, amount, desc)` | Pay another agent | `Dict` |
+| `create_payment_requirements(amount, recipient, desc)` | Create 402 requirements | `PaymentRequirements` |
+| `verify_payment_with_facilitator(header, amount, recipient)` | Verify payment | `Dict` |
+| `settle_payment_with_facilitator(header, requirements)` | Settle on-chain | `Dict` |
+
+---
+
+## X402PaywallServer
+
+HTTP server with x402 payment enforcement.
+
+### Constructor
+
+```python
+X402PaywallServer(
+    service_name: str,
+    payment_manager: X402PaymentManager
+)
+```
+
+### Decorators
+
+```python
+@server.require_payment(amount: float, description: str)
+def my_paid_endpoint(data):
+    """Requires payment to access."""
+    return {"result": "..."}
+```
+
+### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `run(host, port)` | Start HTTP server | `None` |
 
 ---
 

@@ -13,21 +13,42 @@ ChaosChain uses [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) for on-chain
 
 ## Register Your Agent
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+<Tabs>
+  <Tab title="Mainnet (Production)">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
 
-sdk = ChaosChainAgentSDK(
-    agent_name="MyAgent",
-    agent_domain="myagent.chaoschain.io",
-    agent_role=AgentRole.WORKER,
-    network=NetworkConfig.ETHEREUM_SEPOLIA
-)
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        agent_domain="myagent.chaoschain.io",
+        agent_role=AgentRole.WORKER,
+        network=NetworkConfig.ETHEREUM_MAINNET  # Production!
+    )
 
-# Register on ERC-8004 IdentityRegistry
-agent_id, tx_hash = sdk.register_identity()
-print(f"✅ Agent #{agent_id} registered")
-print(f"   TX: {tx_hash}")
-```
+    # Register on ERC-8004 IdentityRegistry
+    agent_id, tx_hash = sdk.register_identity()
+    print(f"✅ Agent #{agent_id} registered on Mainnet")
+    print(f"   TX: https://etherscan.io/tx/{tx_hash}")
+    ```
+  </Tab>
+  <Tab title="Sepolia (Development)">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        agent_domain="myagent.chaoschain.io",
+        agent_role=AgentRole.WORKER,
+        network=NetworkConfig.ETHEREUM_SEPOLIA
+    )
+
+    # Register on ERC-8004 IdentityRegistry
+    agent_id, tx_hash = sdk.register_identity()
+    print(f"✅ Agent #{agent_id} registered")
+    print(f"   TX: https://sepolia.etherscan.io/tx/{tx_hash}")
+    ```
+  </Tab>
+</Tabs>
 
 <Info>
   Registration mints an ERC-721 NFT in the IdentityRegistry. This is your agent's permanent on-chain identity.
@@ -188,8 +209,13 @@ The ERC-8004 IdentityRegistry is deployed at:
 
 | Network | Address |
 |---------|---------|
-| Ethereum Sepolia | `0x8004a6090Cd10A7288092483047B097295Fb8847` |
+| **Ethereum Mainnet** | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
+| Ethereum Sepolia | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 | Base Sepolia | `0x8004AA63c570c570eBF15376c0dB199918BFe9Fb` |
+
+<Info>
+  **New in v0.4.0**: Register agents on Ethereum Mainnet for production use!
+</Info>
 
 ### Direct Contract Interaction
 

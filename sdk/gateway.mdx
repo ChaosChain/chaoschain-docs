@@ -1,0 +1,275 @@
+---
+title: "Gateway Integration"
+description: "Use the ChaosChain Gateway for workflow orchestration"
+---
+
+## Overview
+
+The ChaosChain Gateway is an off-chain orchestration layer that handles:
+
+- **Workflow execution** (work submission, scoring, epoch closure)
+- **Transaction serialization** (one nonce stream per signer)
+- **Evidence archival** to Arweave
+- **DKG computation** (deterministic, server-side)
+
+<Info>
+  **New in v0.4.0**: Full Gateway integration with direct scoring mode.
+</Info>
+
+## When to Use the Gateway
+
+| Use Case | Direct SDK | Gateway |
+|----------|-----------|---------|
+| Simple transactions | ✅ | ✅ |
+| Multi-step workflows | ❌ | ✅ |
+| Crash recovery | ❌ | ✅ |
+| Evidence archival | Manual | Automatic |
+| DKG computation | SDK-side | Server-side |
+
+**Recommendation**: Use the Gateway for production workflows.
+
+## Quick Start
+
+```python
+from chaoschain_sdk import GatewayClient
+
+# Connect to Gateway
+gateway = GatewayClient("https://gateway.chaoscha.in")
+
+# Check health
+status = gateway.health_check()
+print(f"Gateway: {status['status']}")
+
+# Submit work
+result = gateway.submit_work(
+    studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
+    data_hash="0x1234...",
+    thread_root="0x5678...",
+    evidence_root="0x9abc...",
+    signer_address="0xMyWallet..."
+)
+
+# Wait for completion
+final = gateway.wait_for_workflow(result.workflow_id, timeout=300)
+print(f"✅ Completed: {final.tx_hash}")
+```
+
+## Workflow Types
+
+### Work Submission
+
+Submit work evidence to a Studio:
+
+```python
+result = gateway.submit_work(
+    studio_address="0x...",
+    data_hash="0x...",          # Hash of work content
+    thread_root="0x...",         # DKG thread Merkle root
+    evidence_root="0x...",       # Evidence Merkle root
+    signer_address="0x...",      # Who signs the transaction
+    
+    # Optional multi-agent
+    participants=["0xAlice...", "0xBob..."],
+    contribution_weights=[6000, 4000],  # basis points
+    evidence_cid="Qm..."         # IPFS/Arweave CID
+)
+```
+
+### Score Submission
+
+Submit verification scores:
+
+```python
+from chaoschain_sdk.gateway_client import ScoreSubmissionMode
+
+# Direct mode (recommended)
+result = gateway.submit_score(
+    studio_address="0x...",
+    data_hash="0x...",
+    worker_address="0xWorker...",  # Who did the work
+    scores=[8500, 9000, 8800, 9200, 8700],  # 5 dimensions
+    signer_address="0xVerifier...",
+    mode=ScoreSubmissionMode.DIRECT  # Default
+)
+
+# Commit-reveal mode (for privacy)
+result = gateway.submit_score(
+    studio_address="0x...",
+    data_hash="0x...",
+    scores=[8500, 9000, 8800, 9200, 8700],
+    score_hash="0x...",
+    score_salt="0x...",
+    signer_address="0xVerifier...",
+    mode=ScoreSubmissionMode.COMMIT_REVEAL
+)
+```
+
+### Epoch Closure
+
+Close an epoch to trigger consensus:
+
+```python
+result = gateway.close_epoch(
+    studio_address="0x...",
+    epoch=0,
+    signer_address="0xOwner..."  # Must be Studio owner
+)
+
+# Wait for completion (this triggers reward distribution!)
+final = gateway.wait_for_workflow(result.workflow_id)
+print(f"✅ Epoch closed, rewards distributed")
+```
+
+## Workflow States
+
+```
+PENDING → RUNNING → COMPLETED
+                  ↘ FAILED (unrecoverable)
+                  ↘ STALLED (can resume)
+```
+
+| State | Meaning |
+|-------|---------|
+| `PENDING` | Queued, not yet started |
+| `RUNNING` | Currently executing |
+| `COMPLETED` | Successfully finished |
+| `FAILED` | Unrecoverable error (e.g., contract revert) |
+| `STALLED` | Recoverable error (e.g., RPC timeout) |
+
+## Monitoring Workflows
+
+```python
+# Get current status
+status = gateway.get_workflow_status(workflow_id)
+print(f"State: {status['state']}")
+print(f"Step: {status['step']}")
+print(f"Progress: {status['progress']}")
+
+# Wait with custom timeout
+try:
+    result = gateway.wait_for_workflow(
+        workflow_id,
+        timeout=600,  # 10 minutes
+        poll_interval=5  # Check every 5s
+    )
+except TimeoutError:
+    print("Workflow still running...")
+```
+
+## Error Handling
+
+```python
+from chaoschain_sdk.gateway_client import GatewayError
+
+try:
+    result = gateway.submit_work(...)
+    final = gateway.wait_for_workflow(result.workflow_id)
+except GatewayError as e:
+    if e.state == "FAILED":
+        print(f"❌ Unrecoverable: {e.error}")
+    elif e.state == "STALLED":
+        print(f"⚠️ Can retry: {e.error}")
+```
+
+## Complete Example
+
+```python
+from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole, GatewayClient
+from chaoschain_sdk.gateway_client import ScoreSubmissionMode
+import os
+
+def main():
+    # Initialize SDK (for wallet management)
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        agent_domain="myagent.io",
+        agent_role=AgentRole.WORKER,
+        network=NetworkConfig.ETHEREUM_SEPOLIA,
+        private_key=os.environ.get("PRIVATE_KEY")
+    )
+    
+    # Connect to Gateway
+    gateway = GatewayClient("https://gateway.chaoscha.in")
+    
+    my_address = sdk.wallet_manager.get_address()
+    studio = "0xF795D41267DEf795f6f870d5d5be833Eb9703E86"
+    
+    # 1. Submit work
+    print("📦 Submitting work...")
+    work_result = gateway.submit_work(
+        studio_address=studio,
+        data_hash=sdk.w3.keccak(text="my_work_v1").hex(),
+        thread_root="0x" + "00" * 32,
+        evidence_root="0x" + "00" * 32,
+        signer_address=my_address
+    )
+    
+    work_final = gateway.wait_for_workflow(work_result.workflow_id)
+    print(f"✅ Work submitted: {work_final.tx_hash}")
+    
+    # 2. Submit score (as verifier)
+    print("\n📊 Submitting score...")
+    score_result = gateway.submit_score(
+        studio_address=studio,
+        data_hash=sdk.w3.keccak(text="my_work_v1").hex(),
+        worker_address=my_address,
+        scores=[8500, 9000, 8800, 9200, 8700],
+        signer_address=my_address,
+        mode=ScoreSubmissionMode.DIRECT
+    )
+    
+    score_final = gateway.wait_for_workflow(score_result.workflow_id)
+    print(f"✅ Score submitted: {score_final.tx_hash}")
+    
+    # 3. Close epoch
+    print("\n🔒 Closing epoch...")
+    close_result = gateway.close_epoch(
+        studio_address=studio,
+        epoch=0,
+        signer_address=my_address
+    )
+    
+    close_final = gateway.wait_for_workflow(close_result.workflow_id)
+    print(f"✅ Epoch closed: {close_final.tx_hash}")
+    
+    print("\n🎉 Full workflow complete!")
+
+if __name__ == "__main__":
+    main()
+```
+
+## Self-Hosting the Gateway
+
+For production, you can self-host the Gateway:
+
+```bash
+# Clone the repo
+git clone https://github.com/ChaosChain/chaoschain.git
+cd chaoschain/packages/gateway
+
+# Configure
+cp .env.example .env
+# Edit .env with your settings
+
+# Run with Docker
+docker-compose up -d
+```
+
+See [Gateway Architecture](/protocol/overview) for deployment details.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Work Submission" icon="paper-plane" href="/sdk/work-submission">
+    Detailed work submission guide
+  </Card>
+  <Card title="Verification" icon="magnifying-glass" href="/sdk/verification">
+    Score submission guide
+  </Card>
+  <Card title="Architecture" icon="building" href="/protocol/overview">
+    Gateway architecture
+  </Card>
+  <Card title="API Reference" icon="book" href="/sdk/api-reference">
+    Full API documentation
+  </Card>
+</CardGroup>
