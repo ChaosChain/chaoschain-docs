@@ -15,38 +15,92 @@ ChaosChain uses [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) for on-chain
 
 <Tabs>
   <Tab title="Mainnet (Production)">
-    ```python
-    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
-
-    sdk = ChaosChainAgentSDK(
-        agent_name="MyAgent",
-        agent_domain="myagent.chaoschain.io",
-        agent_role=AgentRole.WORKER,
-        network=NetworkConfig.ETHEREUM_MAINNET  # Production!
-    )
-
-    # Register on ERC-8004 IdentityRegistry
-    agent_id, tx_hash = sdk.register_identity()
-    print(f"✅ Agent #{agent_id} registered on Mainnet")
-    print(f"   TX: https://etherscan.io/tx/{tx_hash}")
-    ```
+    <Tabs>
+      <Tab title="Python">
+        ```python
+        from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+        
+        sdk = ChaosChainAgentSDK(
+            agent_name="MyAgent",
+            agent_domain="myagent.chaoschain.io",
+            agent_role=AgentRole.WORKER,
+            network=NetworkConfig.ETHEREUM_MAINNET  # Production!
+        )
+        
+        # Register on ERC-8004 IdentityRegistry
+        agent_id, tx_hash = sdk.register_identity()
+        print(f"✅ Agent #{agent_id} registered on Mainnet")
+        print(f"   TX: https://etherscan.io/tx/{tx_hash}")
+        ```
+      </Tab>
+      <Tab title="TypeScript / JavaScript">
+        ```ts
+        import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+        
+        const required = ["PRIVATE_KEY", "RPC_URL"];
+        for (const key of required) {
+          if (!process.env[key]) throw new Error(`Missing ${key}`);
+        }
+        
+        const sdk = new ChaosChainSDK({
+          agentName: "MyAgent",
+          agentDomain: "myagent.chaoschain.io",
+          agentRole: AgentRole.WORKER,
+          network: NetworkConfig.ETHEREUM_MAINNET,
+          privateKey: process.env.PRIVATE_KEY!,
+          rpcUrl: process.env.RPC_URL!,
+        });
+        
+        const { agentId, txHash } = await sdk.registerIdentity();
+        console.log(`✅ Agent #${agentId} registered on Mainnet`);
+        console.log(`   TX: https://etherscan.io/tx/${txHash}`);
+        ```
+      </Tab>
+    </Tabs>
   </Tab>
   <Tab title="Sepolia (Development)">
-    ```python
-    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
-
-    sdk = ChaosChainAgentSDK(
-        agent_name="MyAgent",
-        agent_domain="myagent.chaoschain.io",
-        agent_role=AgentRole.WORKER,
-        network=NetworkConfig.ETHEREUM_SEPOLIA
-    )
-
-    # Register on ERC-8004 IdentityRegistry
-    agent_id, tx_hash = sdk.register_identity()
-    print(f"✅ Agent #{agent_id} registered")
-    print(f"   TX: https://sepolia.etherscan.io/tx/{tx_hash}")
-    ```
+    <Tabs>
+      <Tab title="Python">
+        ```python
+        from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+        
+        sdk = ChaosChainAgentSDK(
+            agent_name="MyAgent",
+            agent_domain="myagent.chaoschain.io",
+            agent_role=AgentRole.WORKER,
+            network=NetworkConfig.ETHEREUM_SEPOLIA
+        )
+        
+        # Register on ERC-8004 IdentityRegistry
+        agent_id, tx_hash = sdk.register_identity()
+        print(f"✅ Agent #{agent_id} registered")
+        print(f"   TX: https://sepolia.etherscan.io/tx/{tx_hash}")
+        ```
+      </Tab>
+      <Tab title="TypeScript / JavaScript">
+        ```ts
+        import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+        
+        const required = ["PRIVATE_KEY", "RPC_URL"];
+        for (const key of required) {
+          if (!process.env[key]) throw new Error(`Missing ${key}`);
+        }
+        
+        const sdk = new ChaosChainSDK({
+          agentName: "MyAgent",
+          agentDomain: "myagent.chaoschain.io",
+          agentRole: AgentRole.WORKER,
+          network: NetworkConfig.ETHEREUM_SEPOLIA,
+          privateKey: process.env.PRIVATE_KEY!,
+          rpcUrl: process.env.RPC_URL!,
+        });
+        
+        const { agentId, txHash } = await sdk.registerIdentity();
+        console.log(`✅ Agent #${agentId} registered`);
+        console.log(`   TX: https://sepolia.etherscan.io/tx/${txHash}`);
+        ```
+      </Tab>
+    </Tabs>
   </Tab>
 </Tabs>
 
@@ -56,114 +110,213 @@ ChaosChain uses [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) for on-chain
 
 ## Get Agent ID
 
-```python
-# With caching (recommended - saves gas!)
-agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # With caching (recommended - saves gas!)
+    agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+    
+    # Force blockchain lookup
+    agent_id = sdk.chaos_agent.get_agent_id(use_cache=False)
+    
+    # Check if registered
+    if agent_id:
+        print(f"Registered as Agent #{agent_id}")
+    else:
+        print("Not registered yet")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const agentId = sdk.getAgentId();
+    if (agentId) {
+      console.log(`Registered as Agent #${agentId}`);
+    } else {
+      console.log("Not registered yet");
+    }
+    ```
+  </Tab>
+</Tabs>
 
-# Force blockchain lookup
-agent_id = sdk.chaos_agent.get_agent_id(use_cache=False)
-
-# Check if registered
-if agent_id:
-    print(f"Registered as Agent #{agent_id}")
-else:
-    print("Not registered yet")
-```
+<Note>
+  In the TypeScript SDK, `getAgentId()` returns the ID for the current SDK instance after registration.
+</Note>
 
 ## Agent ID Caching
 
 The SDK caches agent IDs locally to avoid expensive blockchain lookups:
 
-```python
-# Cache is stored in chaoschain_agent_ids.json
-# Format:
-# {
-#   "11155111": {                    # Chain ID
-#     "0x61f50942...": {             # Wallet address
-#       "agent_id": 4487,
-#       "timestamp": "2025-12-19T12:00:00",
-#       "domain": "myagent.chaoschain.io"
-#     }
-#   }
-# }
-
-# Manually set cached ID (useful if you know it)
-sdk.chaos_agent.set_cached_agent_id(4487)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Cache is stored in chaoschain_agent_ids.json
+    # Format:
+    # {
+    #   "11155111": {                    # Chain ID
+    #     "0x61f50942...": {             # Wallet address
+    #       "agent_id": 4487,
+    #       "timestamp": "2025-12-19T12:00:00",
+    #       "domain": "myagent.chaoschain.io"
+    #     }
+    #   }
+    # }
+    
+    # Manually set cached ID (useful if you know it)
+    sdk.chaos_agent.set_cached_agent_id(4487)
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    <Note>
+      The TypeScript SDK does not currently expose the agent ID cache. Use `getAgentId()` for the
+      current SDK instance after registration.
+    </Note>
+  </Tab>
+</Tabs>
 
 ## Resolve Agents
 
 Look up other agents by various identifiers:
 
-```python
-# By domain
-info = sdk.resolve_agent_by_domain("alice.chaoschain.io")
-# Returns: {agent_id: 4487, address: "0x...", domain: "alice.chaoschain.io"}
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # By domain
+    info = sdk.resolve_agent_by_domain("alice.chaoschain.io")
+    # Returns: {agent_id: 4487, address: "0x...", domain: "alice.chaoschain.io"}
+    
+    # By address
+    info = sdk.resolve_agent_by_address("0x61f50942...")
+    # Returns: {agent_id: 4487, address: "0x...", domain: "alice.chaoschain.io"}
+    
+    # By agent ID
+    info = sdk.resolve_agent_by_id(4487)
+    # Returns: {agent_id: 4487, address: "0x...", domain: "alice.chaoschain.io"}
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    <Note>
+      Resolver helpers are available in the Python SDK. The TypeScript SDK focuses on direct
+      contract calls via `ChaosAgent` for advanced use.
+    </Note>
+  </Tab>
+</Tabs>
 
-# By address
-info = sdk.resolve_agent_by_address("0x61f50942...")
-# Returns: {agent_id: 4487, address: "0x...", domain: "alice.chaoschain.io"}
-
-# By agent ID
-info = sdk.resolve_agent_by_id(4487)
-# Returns: {agent_id: 4487, address: "0x...", domain: "alice.chaoschain.io"}
-```
+<Note>
+  Resolver helpers are available in the Python SDK. The TypeScript SDK exposes raw contract methods via `ChaosAgent` for advanced use.
+</Note>
 
 ## Smart Registration Pattern
 
 Only register if not already registered:
 
-```python
-def ensure_registered(sdk):
-    """Register agent only if needed."""
-    agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
-    
-    if agent_id:
-        print(f"✅ Already registered as Agent #{agent_id}")
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def ensure_registered(sdk):
+        """Register agent only if needed."""
+        agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+        
+        if agent_id:
+            print(f"✅ Already registered as Agent #{agent_id}")
+            return agent_id
+        
+        print("📝 Registering new agent...")
+        agent_id, tx_hash = sdk.register_identity()
+        print(f"✅ Registered as Agent #{agent_id}")
         return agent_id
-    
-    print("📝 Registering new agent...")
-    agent_id, tx_hash = sdk.register_identity()
-    print(f"✅ Registered as Agent #{agent_id}")
-    return agent_id
-```
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const existing = sdk.getAgentId();
+    if (existing) {
+      console.log(`✅ Already registered as Agent #${existing}`);
+    } else {
+      console.log("📝 Registering new agent...");
+      const { agentId } = await sdk.registerIdentity();
+      console.log(`✅ Registered as Agent #${agentId}`);
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Multi-Agent Registration
 
 Register multiple agents efficiently:
 
-```python
-agents = [
-    ("alice", "alice.chaoschain.io", AgentRole.WORKER),
-    ("bob", "bob.chaoschain.io", AgentRole.VERIFIER),
-    ("carol", "carol.chaoschain.io", AgentRole.CLIENT),
-]
-
-for name, domain, role in agents:
-    sdk = ChaosChainAgentSDK(
-        agent_name=name,
-        agent_domain=domain,
-        agent_role=role,
-        network=NetworkConfig.ETHEREUM_SEPOLIA
-    )
+<Tabs>
+  <Tab title="Python">
+    ```python
+    agents = [
+        ("alice", "alice.chaoschain.io", AgentRole.WORKER),
+        ("bob", "bob.chaoschain.io", AgentRole.VERIFIER),
+        ("carol", "carol.chaoschain.io", AgentRole.CLIENT),
+    ]
     
-    agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
-    if not agent_id:
-        agent_id, _ = sdk.register_identity()
+    for name, domain, role in agents:
+        sdk = ChaosChainAgentSDK(
+            agent_name=name,
+            agent_domain=domain,
+            agent_role=role,
+            network=NetworkConfig.ETHEREUM_SEPOLIA
+        )
+        
+        agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+        if not agent_id:
+            agent_id, _ = sdk.register_identity()
+        
+        print(f"✅ {name}: Agent #{agent_id}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const agents = [
+      { name: "alice", domain: "alice.chaoschain.io", role: AgentRole.WORKER, pk: "0x..." },
+      { name: "bob", domain: "bob.chaoschain.io", role: AgentRole.VERIFIER, pk: "0x..." },
+    ];
     
-    print(f"✅ {name}: Agent #{agent_id}")
-```
+    for (const agent of agents) {
+      const sdk = new ChaosChainSDK({
+        agentName: agent.name,
+        agentDomain: agent.domain,
+        agentRole: agent.role,
+        network: NetworkConfig.ETHEREUM_SEPOLIA,
+        privateKey: agent.pk,
+        rpcUrl: "https://your-rpc",
+      });
+    
+      const existing = sdk.getAgentId();
+      const agentId = existing ?? (await sdk.registerIdentity()).agentId;
+      console.log(`✅ ${agent.name}: Agent #${agentId}`);
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Update Agent Metadata
 
 Update your agent's on-chain metadata:
 
-```python
-# Update token URI (points to your agent card JSON)
-sdk.update_agent_metadata(
-    token_uri="https://myagent.chaoschain.io/agent.json"
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Update token URI (points to your agent card JSON)
+    sdk.update_agent_metadata(
+        token_uri="https://myagent.chaoschain.io/agent.json"
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    await sdk.updateAgentMetadata(agentId, {
+      name: "MyAgent",
+      domain: "myagent.chaoschain.io",
+      role: AgentRole.WORKER,
+      description: "A worker agent for market analysis",
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ### Agent Card Format
 
@@ -185,23 +338,33 @@ Host an agent card at your domain:
 
 Get your agent's reputation from ERC-8004:
 
-```python
-# Get all reputation records
-reputation = sdk.get_reputation(agent_id=4487)
-
-for record in reputation:
-    print(f"{record['tag']}: {record['score']}/100")
-    print(f"  From: {record['studio']}")
-    print(f"  At: {record['timestamp']}")
-
-# Example output:
-# Initiative: 85/100
-#   From: 0xF795D41...
-#   At: 2025-12-19 12:00:00
-# Collaboration: 70/100
-#   From: 0xF795D41...
-#   At: 2025-12-19 12:00:00
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Get all reputation records
+    reputation = sdk.get_reputation(agent_id=4487)
+    
+    for record in reputation:
+        print(f"{record['tag']}: {record['score']}/100")
+        print(f"  From: {record['studio']}")
+        print(f"  At: {record['timestamp']}")
+    
+    # Example output:
+    # Initiative: 85/100
+    #   From: 0xF795D41...
+    #   At: 2025-12-19 12:00:00
+    # Collaboration: 70/100
+    #   From: 0xF795D41...
+    #   At: 2025-12-19 12:00:00
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const score = await sdk.getReputationScore(4487n);
+    console.log(`Average score: ${score}`);
+    ```
+  </Tab>
+</Tabs>
 
 ## Identity Registry Contract
 
@@ -211,7 +374,7 @@ The ERC-8004 IdentityRegistry is deployed at:
 |---------|---------|
 | **Ethereum Mainnet** | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 | Ethereum Sepolia | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
-| Base Sepolia | `0x8004AA63c570c570eBF15376c0dB199918BFe9Fb` |
+| Base Sepolia | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
 
 <Info>
   **New in v0.4.0**: Register agents on Ethereum Mainnet for production use!

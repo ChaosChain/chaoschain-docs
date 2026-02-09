@@ -5,31 +5,65 @@ description: "Configure the ChaosChain SDK for your needs"
 
 ## SDK Initialization
 
-The `ChaosChainAgentSDK` constructor accepts many configuration options:
+The SDK constructor accepts many configuration options:
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+    
+    sdk = ChaosChainAgentSDK(
+        # Required
+        agent_name="MyAgent",
+        agent_domain="myagent.example.com",
+        agent_role=AgentRole.WORKER,
+        
+        # Network
+        network=NetworkConfig.ETHEREUM_SEPOLIA,
+        
+        # Wallet (pick one)
+        private_key="0x...",           # Direct key
+        wallet_file="wallet.json",      # Encrypted file
+        
+        # Features (all True by default)
+        enable_process_integrity=True,
+        enable_payments=True,
+        enable_storage=True,
+        enable_ap2=True
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+    
+    const sdk = new ChaosChainSDK({
+      // Required
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      
+      // Network
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      
+      // Wallet (pick one)
+      privateKey: "0x...", // Direct key
+      // mnemonic: "test test test ...",
+      // walletFile: "./wallet.json",
+      
+      // Features (all true by default)
+      enableProcessIntegrity: true,
+      enablePayments: true,
+      enableStorage: true,
+      enableAP2: true,
+    });
+    ```
+  </Tab>
+</Tabs>
 
-sdk = ChaosChainAgentSDK(
-    # Required
-    agent_name="MyAgent",
-    agent_domain="myagent.example.com",
-    agent_role=AgentRole.WORKER,
-    
-    # Network
-    network=NetworkConfig.ETHEREUM_SEPOLIA,
-    
-    # Wallet (pick one)
-    private_key="0x...",           # Direct key
-    wallet_file="wallet.json",      # Encrypted file
-    
-    # Features (all True by default)
-    enable_process_integrity=True,
-    enable_payments=True,
-    enable_storage=True,
-    enable_ap2=True
-)
-```
+<Warning>
+  **TypeScript signer requirement**: You must provide exactly one of `privateKey`, `mnemonic`, or `walletFile`. The SDK fails fast if none or multiple are provided.
+</Warning>
 
 ## Agent Roles
 
@@ -54,21 +88,53 @@ AgentRole.ALL              # All capabilities
 
 ### Supported Networks
 
-```python
-from chaoschain_sdk import NetworkConfig
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import NetworkConfig
+    
+    # Ethereum Mainnet (for production ERC-8004)
+    NetworkConfig.ETHEREUM_MAINNET
+    
+    # Ethereum Sepolia (recommended for development)
+    NetworkConfig.ETHEREUM_SEPOLIA
+    
+    # Base Sepolia
+    NetworkConfig.BASE_SEPOLIA
+    
+    # Linea Sepolia
+    NetworkConfig.LINEA_SEPOLIA
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { NetworkConfig } from "@chaoschain/sdk";
+    
+    NetworkConfig.ETHEREUM_MAINNET;
+    NetworkConfig.ETHEREUM_SEPOLIA;
+    NetworkConfig.BASE_MAINNET;
+    NetworkConfig.BASE_SEPOLIA;
+    NetworkConfig.POLYGON_MAINNET;
+    NetworkConfig.POLYGON_AMOY;
+    NetworkConfig.ARBITRUM_MAINNET;
+    NetworkConfig.ARBITRUM_TESTNET;
+    NetworkConfig.CELO_MAINNET;
+    NetworkConfig.CELO_TESTNET;
+    NetworkConfig.GNOSIS_MAINNET;
+    NetworkConfig.SCROLL_MAINNET;
+    NetworkConfig.SCROLL_TESTNET;
+    NetworkConfig.TAIKO_MAINNET;
+    NetworkConfig.MONAD_MAINNET;
+    NetworkConfig.MONAD_TESTNET;
+    NetworkConfig.BSC_MAINNET;
+    NetworkConfig.BSC_TESTNET;
+    ```
+  </Tab>
+</Tabs>
 
-# Ethereum Mainnet (for production ERC-8004)
-NetworkConfig.ETHEREUM_MAINNET
-
-# Ethereum Sepolia (recommended for development)
-NetworkConfig.ETHEREUM_SEPOLIA
-
-# Base Sepolia
-NetworkConfig.BASE_SEPOLIA
-
-# Linea Sepolia
-NetworkConfig.LINEA_SEPOLIA
-```
+<Info>
+  **Monad networks** require `MONAD_MAINNET_CHAIN_ID` / `MONAD_TESTNET_CHAIN_ID` and RPC URLs in your environment.
+</Info>
 
 <Info>
   **New in v0.4.0**: `ETHEREUM_MAINNET` support for production agent registration!
@@ -76,24 +142,71 @@ NetworkConfig.LINEA_SEPOLIA
 
 ### Custom RPC
 
-```python
-sdk = ChaosChainAgentSDK(
-    agent_name="MyAgent",
-    network=NetworkConfig.ETHEREUM_SEPOLIA,
-    rpc_url="https://your-custom-rpc.com"  # Override default RPC
-)
+<Tabs>
+  <Tab title="Python">
+    ```python
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        network=NetworkConfig.ETHEREUM_SEPOLIA,
+        rpc_url="https://your-custom-rpc.com"  # Override default RPC
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: "0x...",
+      rpcUrl: "https://your-custom-rpc.com",
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### Monad Environment Variables (TypeScript / JavaScript)
+
+If you select `NetworkConfig.MONAD_MAINNET` or `NetworkConfig.MONAD_TESTNET`, you must provide chain IDs and RPC URLs via environment variables:
+
+```bash
+MONAD_MAINNET_CHAIN_ID=12345
+MONAD_MAINNET_RPC_URL=https://...
+MONAD_TESTNET_CHAIN_ID=12346
+MONAD_TESTNET_RPC_URL=https://...
 ```
+
+<Warning>
+  The SDK fails fast if the Monad chain IDs or RPC URLs are missing.
+</Warning>
 
 ## Wallet Configuration
 
 ### Option 1: Private Key (Development Only)
 
-```python
-sdk = ChaosChainAgentSDK(
-    agent_name="MyAgent",
-    private_key="0x..."  # ⚠️ Never commit to git!
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        private_key="0x..."  # ⚠️ Never commit to git!
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: "0x...", // ⚠️ Never commit to git!
+      rpcUrl: "https://your-rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ### Option 2: Environment Variable
 
@@ -101,53 +214,184 @@ sdk = ChaosChainAgentSDK(
 export PRIVATE_KEY="0x..."
 ```
 
-```python
-import os
-sdk = ChaosChainAgentSDK(
-    agent_name="MyAgent",
-    private_key=os.environ.get("PRIVATE_KEY")
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import os
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        private_key=os.environ.get("PRIVATE_KEY")
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: process.env.PRIVATE_KEY!,
+      rpcUrl: "https://your-rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ### Option 3: Encrypted Wallet File
 
-```python
-# Create wallet file
-from chaoschain_sdk.wallet_manager import WalletManager
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Create wallet file
+    from chaoschain_sdk.wallet_manager import WalletManager
+    
+    wallet = WalletManager()
+    wallet.create_wallet("MyAgent", password="secure_password")
+    wallet.save_to_file("wallet.json")
+    
+    # Use wallet file
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        wallet_file="wallet.json",
+        wallet_password="secure_password"
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      walletFile: "./wallet.json",
+      rpcUrl: "https://your-rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
 
-wallet = WalletManager()
-wallet.create_wallet("MyAgent", password="secure_password")
-wallet.save_to_file("wallet.json")
+### TypeScript / JavaScript Wallet Options
 
-# Use wallet file
-sdk = ChaosChainAgentSDK(
-    agent_name="MyAgent",
-    wallet_file="wallet.json",
-    wallet_password="secure_password"
-)
-```
+<Tabs>
+  <Tab title="Private Key">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: "0x...",
+      rpcUrl: "https://your-rpc",
+    });
+    ```
+  </Tab>
+  <Tab title="Mnemonic">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      mnemonic: "test test test ...",
+      rpcUrl: "https://your-rpc",
+    });
+    ```
+  </Tab>
+  <Tab title="Wallet File">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      walletFile: "./wallet.json",
+      rpcUrl: "https://your-rpc",
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ## Feature Toggles
 
 Enable or disable SDK features:
 
-```python
-sdk = ChaosChainAgentSDK(
-    agent_name="MyAgent",
-    
-    # Process Integrity - cryptographic proofs of execution
-    enable_process_integrity=True,
-    
-    # x402 Payments - machine-to-machine payments
-    enable_payments=True,
-    
-    # Storage - IPFS/Arweave integration
-    enable_storage=True,
-    
-    # Google AP2 - intent verification
-    enable_ap2=True
-)
+<Tabs>
+  <Tab title="Python">
+    ```python
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyAgent",
+        
+        # Process Integrity - cryptographic proofs of execution
+        enable_process_integrity=True,
+        
+        # x402 Payments - machine-to-machine payments
+        enable_payments=True,
+        
+        # Storage - IPFS/Arweave integration
+        enable_storage=True,
+        
+        # Google AP2 - intent verification
+        enable_ap2=True
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: "0x...",
+      rpcUrl: "https://your-rpc",
+      enableProcessIntegrity: true,
+      enablePayments: true,
+      enableStorage: true,
+      enableAP2: true,
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Gateway Configuration (TypeScript / JavaScript)
+
+```ts
+const sdk = new ChaosChainSDK({
+  agentName: "MyAgent",
+  agentDomain: "myagent.example.com",
+  agentRole: AgentRole.WORKER,
+  network: NetworkConfig.BASE_SEPOLIA,
+  privateKey: "0x...",
+  rpcUrl: "https://your-rpc",
+  gatewayConfig: {
+    gatewayUrl: "https://gateway.chaoscha.in",
+    timeoutMs: 30000,
+    maxPollTimeMs: 600000,
+    pollIntervalMs: 2000,
+    auth: {
+      authMode: "apiKey",
+      apiKey: "your_api_key",
+    },
+    retry: {
+      enabled: true, // opt-in only
+      maxRetries: 3,
+      initialDelayMs: 500,
+      maxDelayMs: 4000,
+      jitter: true,
+    },
+  },
+});
 ```
+
+<Warning>
+  **Gateway config required**: Accessing `sdk.gateway` without `gatewayConfig` (or `gatewayUrl`) throws a configuration error.
+</Warning>
+
+<Note>
+  **Retries are opt-in**: The SDK does not retry on your behalf unless `gatewayConfig.retry.enabled` is set.
+</Note>
 
 ## Contract Addresses
 

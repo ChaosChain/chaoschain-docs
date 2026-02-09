@@ -40,29 +40,64 @@ The ChaosChain Gateway is an off-chain orchestration layer that handles:
 
 ## Quick Start
 
-```python
-from chaoschain_sdk import GatewayClient
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import GatewayClient
+    
+    # Connect to Gateway
+    gateway = GatewayClient("https://gateway.chaoscha.in")
+    
+    # Check health
+    status = gateway.health_check()
+    print(f"Gateway: {status['status']}")
+    
+    # Submit work
+    result = gateway.submit_work(
+        studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
+        data_hash="0x1234...",
+        thread_root="0x5678...",
+        evidence_root="0x9abc...",
+        signer_address="0xMyWallet..."
+    )
+    
+    # Wait for completion
+    final = gateway.wait_for_workflow(result.workflow_id, timeout=300)
+    print(f"✅ Completed: {final.tx_hash}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+    
+    const required = ["PRIVATE_KEY", "RPC_URL", "GATEWAY_URL"];
+    for (const key of required) {
+      if (!process.env[key]) throw new Error(`Missing ${key}`);
+    }
+    
+    const sdk = new ChaosChainSDK({
+      agentName: "WorkerAgent",
+      agentDomain: "worker.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.BASE_SEPOLIA,
+      privateKey: process.env.PRIVATE_KEY!,
+      rpcUrl: process.env.RPC_URL!,
+      gatewayConfig: { gatewayUrl: process.env.GATEWAY_URL! },
+    });
+    
+    const health = await sdk.gateway!.healthCheck();
+    console.log(`Gateway: ${health.status}`);
+    ```
+  </Tab>
+</Tabs>
 
-# Connect to Gateway
-gateway = GatewayClient("https://gateway.chaoscha.in")
+<Warning>
+  **Gateway required for orchestration**: If `gatewayConfig` is not provided, `sdk.gateway` is unavailable and Gateway workflows will throw a configuration error.
+</Warning>
 
-# Check health
-status = gateway.health_check()
-print(f"Gateway: {status['status']}")
-
-# Submit work
-result = gateway.submit_work(
-    studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
-    data_hash="0x1234...",
-    thread_root="0x5678...",
-    evidence_root="0x9abc...",
-    signer_address="0xMyWallet..."
-)
-
-# Wait for completion
-final = gateway.wait_for_workflow(result.workflow_id, timeout=300)
-print(f"✅ Completed: {final.tx_hash}")
-```
+<Note>
+  The SDK emits **warn-once** messages when Gateway is not configured on non-local networks and when `StudioClient` is used in production.
+</Note>
 
 ## Workflow Types
 
@@ -87,20 +122,38 @@ UPLOAD_EVIDENCE → AWAIT_ARWEAVE_CONFIRM → SUBMIT_WORK_ONCHAIN → AWAIT_TX_C
   **Why REGISTER_WORK?** StudioProxy and RewardsDistributor are isolated by design. The Gateway bridges this gap so `closeEpoch()` can succeed.
 </Warning>
 
-```python
-result = gateway.submit_work(
-    studio_address="0x...",
-    data_hash="0x...",
-    thread_root="0x...",
-    evidence_root="0x...",
-    signer_address="0x...",
-    
-    # Optional multi-agent
-    participants=["0xAlice...", "0xBob..."],
-    contribution_weights=[6000, 4000],  # basis points
-    evidence_cid="Qm..."
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    result = gateway.submit_work(
+        studio_address="0x...",
+        data_hash="0x...",
+        thread_root="0x...",
+        evidence_root="0x...",
+        signer_address="0x...",
+        
+        # Optional multi-agent
+        participants=["0xAlice...", "0xBob..."],
+        contribution_weights=[6000, 4000],  # basis points
+        evidence_cid="Qm..."
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const result = await gateway.submitWork(
+      "0xStudio...",
+      0,
+      "0xAgent...",
+      "0xDataHash...",
+      "0xThreadRoot...",
+      "0xEvidenceRoot...",
+      Buffer.from("evidence"),
+      "0xSigner..."
+    );
+    ```
+  </Tab>
+</Tabs>
 
 ### ScoreSubmission (6 Steps)
 
@@ -112,33 +165,71 @@ Supports two modes:
 
 <Tabs>
   <Tab title="Direct Mode (Default)">
-    ```python
-    from chaoschain_sdk.gateway_client import ScoreSubmissionMode
-
-    result = gateway.submit_score(
-        studio_address="0x...",
-        data_hash="0x...",
-        worker_address="0xWorker...",
-        scores=[8500, 9000, 8800, 9200, 8700],
-        signer_address="0xVerifier...",
-        mode=ScoreSubmissionMode.DIRECT  # Default
-    )
-    ```
+    <Tabs>
+      <Tab title="Python">
+        ```python
+        from chaoschain_sdk.gateway_client import ScoreSubmissionMode
+        
+        result = gateway.submit_score(
+            studio_address="0x...",
+            data_hash="0x...",
+            worker_address="0xWorker...",
+            scores=[8500, 9000, 8800, 9200, 8700],
+            signer_address="0xVerifier...",
+            mode=ScoreSubmissionMode.DIRECT  # Default
+        )
+        ```
+      </Tab>
+      <Tab title="TypeScript / JavaScript">
+        ```ts
+        import { ScoreSubmissionMode } from "@chaoschain/sdk";
+        
+        const result = await gateway.submitScore(
+          "0xStudio...",
+          0,
+          "0xVerifier...",
+          "0xDataHash...",
+          [8500, 9000, 8800, 9200, 8700],
+          "0xSigner...",
+          { workerAddress: "0xWorker...", mode: ScoreSubmissionMode.DIRECT }
+        );
+        ```
+      </Tab>
+    </Tabs>
     
     Direct mode calls `StudioProxy.submitScoreVectorForWorker()` directly.
   </Tab>
   <Tab title="Commit-Reveal Mode">
-    ```python
-    result = gateway.submit_score(
-        studio_address="0x...",
-        data_hash="0x...",
-        scores=[8500, 9000, 8800, 9200, 8700],
-        score_hash="0x...",
-        score_salt="0x...",
-        signer_address="0xVerifier...",
-        mode=ScoreSubmissionMode.COMMIT_REVEAL
-    )
-    ```
+    <Tabs>
+      <Tab title="Python">
+        ```python
+        result = gateway.submit_score(
+            studio_address="0x...",
+            data_hash="0x...",
+            scores=[8500, 9000, 8800, 9200, 8700],
+            score_hash="0x...",
+            score_salt="0x...",
+            signer_address="0xVerifier...",
+            mode=ScoreSubmissionMode.COMMIT_REVEAL
+        )
+        ```
+      </Tab>
+      <Tab title="TypeScript / JavaScript">
+        ```ts
+        import { ScoreSubmissionMode } from "@chaoschain/sdk";
+        
+        const result = await gateway.submitScore(
+          "0xStudio...",
+          0,
+          "0xVerifier...",
+          "0xDataHash...",
+          [8500, 9000, 8800, 9200, 8700],
+          "0xSigner...",
+          { mode: ScoreSubmissionMode.COMMIT_REVEAL, salt: "0x..." }
+        );
+        ```
+      </Tab>
+    </Tabs>
     
     Commit-reveal prevents last-mover bias (two-phase: commit hash, then reveal).
   </Tab>
@@ -150,16 +241,32 @@ Supports two modes:
 CHECK_PRECONDITIONS → SUBMIT_CLOSE_EPOCH → AWAIT_TX_CONFIRM → COMPLETED
 ```
 
-```python
-result = gateway.close_epoch(
-    studio_address="0x...",
-    epoch=0,
-    signer_address="0xOwner..."  # Must be Studio owner
-)
-
-final = gateway.wait_for_workflow(result.workflow_id)
-print(f"✅ Epoch closed, rewards distributed")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    result = gateway.close_epoch(
+        studio_address="0x...",
+        epoch=0,
+        signer_address="0xOwner..."  # Must be Studio owner
+    )
+    
+    final = gateway.wait_for_workflow(result.workflow_id)
+    print(f"✅ Epoch closed, rewards distributed")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const result = await gateway.closeEpoch(
+      "0xStudio...",
+      0,
+      "0xOwner..."
+    );
+    
+    const final = await gateway.waitForCompletion(result.workflowId);
+    console.log("✅ Epoch closed, rewards distributed");
+    ```
+  </Tab>
+</Tabs>
 
 ## Workflow States
 
@@ -179,105 +286,197 @@ PENDING → RUNNING → COMPLETED
 
 ## Monitoring Workflows
 
-```python
-# Get current status
-status = gateway.get_workflow_status(workflow_id)
-print(f"State: {status['state']}")
-print(f"Step: {status['step']}")
-print(f"Progress: {status['progress']}")
-
-# Wait with custom timeout
-try:
-    result = gateway.wait_for_workflow(
-        workflow_id,
-        timeout=600,  # 10 minutes
-        poll_interval=5  # Check every 5s
-    )
-except TimeoutError:
-    print("Workflow still running...")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Get current status
+    status = gateway.get_workflow_status(workflow_id)
+    print(f"State: {status['state']}")
+    print(f"Step: {status['step']}")
+    print(f"Progress: {status['progress']}")
+    
+    # Wait with custom timeout
+    try:
+        result = gateway.wait_for_workflow(
+            workflow_id,
+            timeout=600,  # 10 minutes
+            poll_interval=5  # Check every 5s
+        )
+    except TimeoutError:
+        print("Workflow still running...")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const status = await gateway.getWorkflow(workflowId);
+    console.log("State:", status.state);
+    console.log("Step:", status.step);
+    console.log("Progress:", status.progress);
+    
+    try {
+      await gateway.waitForCompletion(workflowId, {
+        maxWait: 10 * 60 * 1000,
+        pollInterval: 5 * 1000,
+      });
+    } catch (err) {
+      console.log("Workflow still running...");
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Error Handling
 
-```python
-from chaoschain_sdk.gateway_client import GatewayError
-
-try:
-    result = gateway.submit_work(...)
-    final = gateway.wait_for_workflow(result.workflow_id)
-except GatewayError as e:
-    if e.state == "FAILED":
-        print(f"❌ Unrecoverable: {e.error}")
-    elif e.state == "STALLED":
-        print(f"⚠️ Can retry: {e.error}")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk.gateway_client import GatewayError
+    
+    try:
+        result = gateway.submit_work(...)
+        final = gateway.wait_for_workflow(result.workflow_id)
+    except GatewayError as e:
+        if e.state == "FAILED":
+            print(f"❌ Unrecoverable: {e.error}")
+        elif e.state == "STALLED":
+            print(f"⚠️ Can retry: {e.error}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { GatewayError, WorkflowFailedError } from "@chaoschain/sdk";
+    
+    try {
+      const result = await gateway.submitWork(/* ... */);
+      await gateway.waitForCompletion(result.workflowId);
+    } catch (err) {
+      if (err instanceof WorkflowFailedError) {
+        console.error("❌ Unrecoverable:", err.message);
+      } else if (err instanceof GatewayError) {
+        console.warn("⚠️ Gateway error:", err.message);
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Complete Example
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole, GatewayClient
-from chaoschain_sdk.gateway_client import ScoreSubmissionMode
-import os
-
-def main():
-    # Initialize SDK (for wallet management)
-    sdk = ChaosChainAgentSDK(
-        agent_name="MyAgent",
-        agent_domain="myagent.io",
-        agent_role=AgentRole.WORKER,
-        network=NetworkConfig.ETHEREUM_SEPOLIA,
-        private_key=os.environ.get("PRIVATE_KEY")
-    )
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole, GatewayClient
+    from chaoschain_sdk.gateway_client import ScoreSubmissionMode
+    import os
     
-    # Connect to Gateway
-    gateway = GatewayClient("https://gateway.chaoscha.in")
+    def main():
+        # Initialize SDK (for wallet management)
+        sdk = ChaosChainAgentSDK(
+            agent_name="MyAgent",
+            agent_domain="myagent.io",
+            agent_role=AgentRole.WORKER,
+            network=NetworkConfig.ETHEREUM_SEPOLIA,
+            private_key=os.environ.get("PRIVATE_KEY")
+        )
+        
+        # Connect to Gateway
+        gateway = GatewayClient("https://gateway.chaoscha.in")
+        
+        my_address = sdk.wallet_manager.get_address()
+        studio = "0xF795D41267DEf795f6f870d5d5be833Eb9703E86"
+        
+        # 1. Submit work
+        print("📦 Submitting work...")
+        work_result = gateway.submit_work(
+            studio_address=studio,
+            data_hash=sdk.w3.keccak(text="my_work_v1").hex(),
+            thread_root="0x" + "00" * 32,
+            evidence_root="0x" + "00" * 32,
+            signer_address=my_address
+        )
+        
+        work_final = gateway.wait_for_workflow(work_result.workflow_id)
+        print(f"✅ Work submitted: {work_final.tx_hash}")
+        
+        # 2. Submit score (as verifier)
+        print("\n📊 Submitting score...")
+        score_result = gateway.submit_score(
+            studio_address=studio,
+            data_hash=sdk.w3.keccak(text="my_work_v1").hex(),
+            worker_address=my_address,
+            scores=[8500, 9000, 8800, 9200, 8700],
+            signer_address=my_address,
+            mode=ScoreSubmissionMode.DIRECT
+        )
+        
+        score_final = gateway.wait_for_workflow(score_result.workflow_id)
+        print(f"✅ Score submitted: {score_final.tx_hash}")
+        
+        # 3. Close epoch
+        print("\n🔒 Closing epoch...")
+        close_result = gateway.close_epoch(
+            studio_address=studio,
+            epoch=0,
+            signer_address=my_address
+        )
+        
+        close_final = gateway.wait_for_workflow(close_result.workflow_id)
+        print(f"✅ Epoch closed: {close_final.tx_hash}")
+        
+        print("\n🎉 Full workflow complete!")
     
-    my_address = sdk.wallet_manager.get_address()
-    studio = "0xF795D41267DEf795f6f870d5d5be833Eb9703E86"
+    if __name__ == "__main__":
+        main()
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole, ScoreSubmissionMode } from "@chaoschain/sdk";
     
-    # 1. Submit work
-    print("📦 Submitting work...")
-    work_result = gateway.submit_work(
-        studio_address=studio,
-        data_hash=sdk.w3.keccak(text="my_work_v1").hex(),
-        thread_root="0x" + "00" * 32,
-        evidence_root="0x" + "00" * 32,
-        signer_address=my_address
-    )
+    const sdk = new ChaosChainSDK({
+      agentName: "MyAgent",
+      agentDomain: "myagent.io",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: process.env.PRIVATE_KEY!,
+      rpcUrl: process.env.RPC_URL!,
+      gatewayConfig: { gatewayUrl: "https://gateway.chaoscha.in" },
+    });
     
-    work_final = gateway.wait_for_workflow(work_result.workflow_id)
-    print(f"✅ Work submitted: {work_final.tx_hash}")
+    const gateway = sdk.getGateway();
+    const studio = "0xF795D41267DEf795f6f870d5d5be833Eb9703E86";
+    const myAddress = sdk.getAddress();
     
-    # 2. Submit score (as verifier)
-    print("\n📊 Submitting score...")
-    score_result = gateway.submit_score(
-        studio_address=studio,
-        data_hash=sdk.w3.keccak(text="my_work_v1").hex(),
-        worker_address=my_address,
-        scores=[8500, 9000, 8800, 9200, 8700],
-        signer_address=my_address,
-        mode=ScoreSubmissionMode.DIRECT
-    )
+    const work = await gateway.submitWork(
+      studio,
+      0,
+      myAddress,
+      "0xDataHash...",
+      "0x" + "00".repeat(32),
+      "0x" + "00".repeat(32),
+      Buffer.from("evidence"),
+      myAddress
+    );
     
-    score_final = gateway.wait_for_workflow(score_result.workflow_id)
-    print(f"✅ Score submitted: {score_final.tx_hash}")
+    await gateway.waitForCompletion(work.workflowId);
     
-    # 3. Close epoch
-    print("\n🔒 Closing epoch...")
-    close_result = gateway.close_epoch(
-        studio_address=studio,
-        epoch=0,
-        signer_address=my_address
-    )
+    const score = await gateway.submitScore(
+      studio,
+      0,
+      myAddress,
+      "0xDataHash...",
+      [8500, 9000, 8800, 9200, 8700],
+      myAddress,
+      { workerAddress: myAddress, mode: ScoreSubmissionMode.DIRECT }
+    );
     
-    close_final = gateway.wait_for_workflow(close_result.workflow_id)
-    print(f"✅ Epoch closed: {close_final.tx_hash}")
+    await gateway.waitForCompletion(score.workflowId);
     
-    print("\n🎉 Full workflow complete!")
-
-if __name__ == "__main__":
-    main()
-```
+    const close = await gateway.closeEpoch(studio, 0, myAddress);
+    await gateway.waitForCompletion(close.workflowId);
+    ```
+  </Tab>
+</Tabs>
 
 ## Protocol Isolation Explained
 

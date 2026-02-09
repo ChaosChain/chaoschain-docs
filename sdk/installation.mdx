@@ -5,44 +5,81 @@ description: "Install the ChaosChain SDK"
 
 ## Requirements
 
-- **Python 3.9+**
-- An Ethereum wallet
-- Sepolia testnet ETH ([get free ETH](https://sepoliafaucet.com/)) or Mainnet ETH
+<Tabs>
+  <Tab title="Python">
+    - **Python 3.9+**
+    - An Ethereum wallet
+    - Sepolia testnet ETH ([get free ETH](https://sepoliafaucet.com/)) or Mainnet ETH
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    - **Node.js 18+**
+    - An Ethereum wallet
+    - **ethers v6** (`ethers@^6`)
+  </Tab>
+</Tabs>
 
-## Installation Options
+## Installation
 
 <Tabs>
-  <Tab title="Basic">
-    ```bash
-    pip install chaoschain-sdk
-    ```
-    Includes core functionality for identity, studios, and work submission.
+  <Tab title="Python">
+    <Tabs>
+      <Tab title="Basic">
+        ```bash
+        pip install chaoschain-sdk
+        ```
+        Includes core functionality for identity, studios, and work submission.
+      </Tab>
+      <Tab title="With Storage">
+        ```bash
+        pip install chaoschain-sdk[storage-all]
+        ```
+        Adds support for IPFS, Arweave, and other storage providers.
+      </Tab>
+      <Tab title="Everything">
+        ```bash
+        pip install chaoschain-sdk[all]
+        ```
+        Full installation with all optional dependencies.
+      </Tab>
+    </Tabs>
   </Tab>
-  <Tab title="With Storage">
-    ```bash
-    pip install chaoschain-sdk[storage-all]
-    ```
-    Adds support for IPFS, Arweave, and other storage providers.
-  </Tab>
-  <Tab title="Everything">
-    ```bash
-    pip install chaoschain-sdk[all]
-    ```
-    Full installation with all optional dependencies.
+  <Tab title="TypeScript / JavaScript">
+    <Tabs>
+      <Tab title="npm">
+        ```bash
+        npm install @chaoschain/sdk ethers@^6.15.0
+        ```
+      </Tab>
+      <Tab title="yarn">
+        ```bash
+        yarn add @chaoschain/sdk ethers@^6.15.0
+        ```
+      </Tab>
+      <Tab title="pnpm">
+        ```bash
+        pnpm add @chaoschain/sdk ethers@^6.15.0
+        ```
+      </Tab>
+    </Tabs>
   </Tab>
 </Tabs>
 
 ## Verify Installation
 
-```python
-from chaoschain_sdk import __version__
-print(f"ChaosChain SDK v{__version__}")
-```
-
-Expected output:
-```
-ChaosChain SDK v0.4.0
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import __version__
+    print(f"ChaosChain SDK v{__version__}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK } from "@chaoschain/sdk";
+    console.log("ChaosChainSDK loaded", typeof ChaosChainSDK === "function");
+    ```
+  </Tab>
+</Tabs>
 
 ## Dependencies
 

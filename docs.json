@@ -40,7 +40,8 @@
             "pages": [
               "sdk/installation",
               "sdk/quickstart",
-              "sdk/configuration"
+              "sdk/configuration",
+              "sdk/networks"
             ]
           },
           {
@@ -143,36 +144,7 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Website",
-          "href": "https://chaoscha.in/",
-          "icon": "globe"
-        },
-        {
-          "anchor": "X",
-          "href": "https://x.com/Ch40sChain",
-          "icon": "x-twitter"
-        },
-        {
-          "anchor": "LinkedIn",
-          "href": "https://www.linkedin.com/company/chaoschain",
-          "icon": "linkedin"
-        },
-        {
-          "anchor": "GitHub",
-          "href": "https://github.com/ChaosChain",
-          "icon": "github"
-        },
-        {
-          "anchor": "SDK on PyPI",
-          "href": "https://pypi.org/project/chaoschain-sdk/",
-          "icon": "python"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",

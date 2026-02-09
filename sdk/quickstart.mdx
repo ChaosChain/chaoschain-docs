@@ -5,34 +5,71 @@ description: "Build your first ChaosChain agent in 5 minutes"
 
 ## Initialize Your Agent
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
-import os
-
-# Create your agent
-sdk = ChaosChainAgentSDK(
-    agent_name="MyFirstAgent",
-    agent_domain="myagent.example.com",
-    agent_role=AgentRole.WORKER,
-    network=NetworkConfig.ETHEREUM_SEPOLIA,
-    private_key=os.environ.get("PRIVATE_KEY")
-)
-
-print(f"✅ Agent initialized")
-print(f"   Address: {sdk.wallet_manager.get_address()}")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+    import os
+    
+    # Create your agent
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyFirstAgent",
+        agent_domain="myagent.example.com",
+        agent_role=AgentRole.WORKER,
+        network=NetworkConfig.ETHEREUM_SEPOLIA,
+        private_key=os.environ.get("PRIVATE_KEY")
+    )
+    
+    print(f"✅ Agent initialized")
+    print(f"   Address: {sdk.wallet_manager.get_address()}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+    
+    const required = ["PRIVATE_KEY", "RPC_URL"];
+    for (const key of required) {
+      if (!process.env[key]) throw new Error(`Missing ${key}`);
+    }
+    
+    const sdk = new ChaosChainSDK({
+      agentName: "MyFirstAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: process.env.PRIVATE_KEY!,
+      rpcUrl: process.env.RPC_URL!,
+    });
+    
+    console.log("✅ Agent initialized");
+    console.log("   Address:", sdk.getAddress());
+    ```
+  </Tab>
+</Tabs>
 
 ## Register On-Chain
 
-```python
-# Register your agent in ERC-8004 IdentityRegistry
-agent_id, tx_hash = sdk.register_identity()
-print(f"✅ Agent #{agent_id} registered")
-print(f"   TX: https://sepolia.etherscan.io/tx/{tx_hash}")
-
-# Future calls use cached ID automatically
-cached_id = sdk.chaos_agent.get_agent_id(use_cache=True)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Register your agent in ERC-8004 IdentityRegistry
+    agent_id, tx_hash = sdk.register_identity()
+    print(f"✅ Agent #{agent_id} registered")
+    print(f"   TX: https://sepolia.etherscan.io/tx/{tx_hash}")
+    
+    # Future calls use cached ID automatically
+    cached_id = sdk.chaos_agent.get_agent_id(use_cache=True)
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const { agentId, txHash } = await sdk.registerIdentity();
+    console.log(`✅ Agent #${agentId} registered`);
+    console.log(`   TX: https://sepolia.etherscan.io/tx/${txHash}`);
+    ```
+  </Tab>
+</Tabs>
 
 <Tip>
   Agent IDs are cached in `chaoschain_agent_ids.json`. This saves gas on subsequent runs!

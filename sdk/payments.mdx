@@ -19,40 +19,69 @@ ChaosChain integrates [x402](https://x402.org/) - Coinbase's HTTP 402 protocol f
 
 The most common use case is monetizing your AI agent's capabilities:
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
-from chaoschain_sdk.x402_server import X402PaywallServer
-from chaoschain_sdk.x402_payment_manager import X402PaymentManager
-
-# Initialize your agent
-sdk = ChaosChainAgentSDK(
-    agent_name="MyServiceAgent",
-    agent_domain="myagent.example.com",
-    agent_role=AgentRole.WORKER,
-    network=NetworkConfig.ETHEREUM_MAINNET
-)
-
-# Create payment manager
-payment_manager = X402PaymentManager(
-    wallet_manager=sdk.wallet_manager,
-    network=sdk.network
-)
-
-# Create paywall server
-server = X402PaywallServer(
-    service_name="AI Analysis Service",
-    payment_manager=payment_manager
-)
-
-# Define a paid endpoint
-@server.require_payment(amount=1.00, description="AI Analysis")
-def analyze(data: dict) -> dict:
-    """This endpoint requires $1.00 USDC payment."""
-    return {"result": "analysis complete", "confidence": 0.95}
-
-# Run the server
-server.run(host="0.0.0.0", port=8402)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+    from chaoschain_sdk.x402_server import X402PaywallServer
+    from chaoschain_sdk.x402_payment_manager import X402PaymentManager
+    
+    # Initialize your agent
+    sdk = ChaosChainAgentSDK(
+        agent_name="MyServiceAgent",
+        agent_domain="myagent.example.com",
+        agent_role=AgentRole.WORKER,
+        network=NetworkConfig.ETHEREUM_MAINNET
+    )
+    
+    # Create payment manager
+    payment_manager = X402PaymentManager(
+        wallet_manager=sdk.wallet_manager,
+        network=sdk.network
+    )
+    
+    # Create paywall server
+    server = X402PaywallServer(
+        service_name="AI Analysis Service",
+        payment_manager=payment_manager
+    )
+    
+    # Define a paid endpoint
+    @server.require_payment(amount=1.00, description="AI Analysis")
+    def analyze(data: dict) -> dict:
+        """This endpoint requires $1.00 USDC payment."""
+        return {"result": "analysis complete", "confidence": 0.95}
+    
+    # Run the server
+    server.run(host="0.0.0.0", port=8402)
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+    
+    const required = ["PRIVATE_KEY", "RPC_URL"];
+    for (const key of required) {
+      if (!process.env[key]) throw new Error(`Missing ${key}`);
+    }
+    
+    const sdk = new ChaosChainSDK({
+      agentName: "MyServiceAgent",
+      agentDomain: "myagent.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_MAINNET,
+      privateKey: process.env.PRIVATE_KEY!,
+      rpcUrl: process.env.RPC_URL!,
+      enablePayments: true,
+    });
+    
+    const server = sdk.createX402PaywallServer(8402);
+    const analyze = (data: any) => ({ result: "analysis complete", confidence: 0.95 });
+    server.requirePayment(1.0, "AI Analysis")(analyze);
+    server.start();
+    ```
+  </Tab>
+</Tabs>
 
 Clients calling this endpoint must include a valid x402 payment header or receive HTTP 402 Payment Required.
 
@@ -60,26 +89,50 @@ Clients calling this endpoint must include a valid x402 payment header or receiv
 
 Pay for services as a client:
 
-```python
-from chaoschain_sdk.x402_payment_manager import X402PaymentManager
-
-# Initialize payment manager
-payment_manager = X402PaymentManager(
-    wallet_manager=sdk.wallet_manager,
-    network=sdk.network
-)
-
-# Execute a payment to another agent
-result = payment_manager.execute_agent_payment(
-    recipient_address="0xServiceAgent...",
-    amount_usdc=1.00,
-    description="Paying for AI analysis"
-)
-
-print(f"✅ Payment complete")
-print(f"   TX: {result['tx_hash']}")
-print(f"   Payment header: {result['payment_header']}")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk.x402_payment_manager import X402PaymentManager
+    
+    # Initialize payment manager
+    payment_manager = X402PaymentManager(
+        wallet_manager=sdk.wallet_manager,
+        network=sdk.network
+    )
+    
+    # Execute a payment to another agent
+    result = payment_manager.execute_agent_payment(
+        recipient_address="0xServiceAgent...",
+        amount_usdc=1.00,
+        description="Paying for AI analysis"
+    )
+    
+    print(f"✅ Payment complete")
+    print(f"   TX: {result['tx_hash']}")
+    print(f"   Payment header: {result['payment_header']}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const paymentRequest = sdk.createX402PaymentRequest(
+      "agent:sender",
+      "agent:receiver",
+      1.0,
+      "USDC",
+      "Paying for AI analysis"
+    );
+    
+    const proof = await sdk.executeX402Payment(
+      paymentRequest,
+      "0xServiceAgent..."
+    );
+    
+    console.log("✅ Payment complete");
+    console.log("TX:", proof.transaction_hash);
+    console.log("Main TX:", proof.main_transaction_hash);
+    ```
+  </Tab>
+</Tabs>
 
 ## Payment Flow
 
@@ -112,34 +165,57 @@ print(f"   Payment header: {result['payment_header']}")
 
 Define what payment you require:
 
-```python
-from x402 import PaymentRequirements
-
-# Create payment requirements (for 402 response)
-requirements = payment_manager.create_payment_requirements(
-    amount=1_000_000,  # 1 USDC (6 decimals)
-    recipient=sdk.wallet_manager.get_address(),
-    description="AI Analysis Service"
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from x402 import PaymentRequirements
+    
+    # Create payment requirements (for 402 response)
+    requirements = payment_manager.create_payment_requirements(
+        amount=1_000_000,  # 1 USDC (6 decimals)
+        recipient=sdk.wallet_manager.get_address(),
+        description="AI Analysis Service"
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const requirements = sdk.createX402PaymentRequirements(
+      1.0,
+      "USDC",
+      "AI Analysis Service"
+    );
+    ```
+  </Tab>
+</Tabs>
 
 ## Verifying Incoming Payments
 
 Verify payments from clients:
 
-```python
-# Verify a payment header
-result = payment_manager.verify_payment_with_facilitator(
-    payment_header="x402-payment-data...",
-    expected_amount=1_000_000,
-    expected_recipient=my_address
-)
-
-if result['valid']:
-    print("✅ Payment verified")
-else:
-    print(f"❌ Invalid: {result['error']}")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Verify a payment header
+    result = payment_manager.verify_payment_with_facilitator(
+        payment_header="x402-payment-data...",
+        expected_amount=1_000_000,
+        expected_recipient=my_address
+    )
+    
+    if result['valid']:
+        print("✅ Payment verified")
+    else:
+        print(f"❌ Invalid: {result['error']}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    <Note>
+      In the TypeScript SDK, incoming payment verification is handled by `X402Server` when you use
+      `createX402PaywallServer()` and `requirePayment()`.
+    </Note>
+  </Tab>
+</Tabs>
 
 ## Settlement
 

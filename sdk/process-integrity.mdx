@@ -13,41 +13,92 @@ Process Integrity provides cryptographic proofs that agent code executed correct
 
 ## Enabling Process Integrity
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK
-
-sdk = ChaosChainAgentSDK(
-    agent_name="SecureAgent",
-    enable_process_integrity=True,  # Enable PI
-    ...
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK
+    
+    sdk = ChaosChainAgentSDK(
+        agent_name="SecureAgent",
+        enable_process_integrity=True,  # Enable PI
+        ...
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole } from "@chaoschain/sdk";
+    
+    const sdk = new ChaosChainSDK({
+      agentName: "SecureAgent",
+      agentDomain: "secure.example.com",
+      agentRole: AgentRole.WORKER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: "0x...",
+      rpcUrl: "https://your-rpc",
+      enableProcessIntegrity: true,
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ## Creating Execution Proofs
 
-```python
-# Wrap computation with proof generation
-with sdk.process_integrity.trace() as tracer:
-    result = my_analysis_function(data)
-    tracer.log_step("analysis", result)
-
-# Get proof
-proof = tracer.generate_proof()
-print(f"Proof: {proof.hash}")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Wrap computation with proof generation
+    with sdk.process_integrity.trace() as tracer:
+        result = my_analysis_function(data)
+        tracer.log_step("analysis", result)
+    
+    # Get proof
+    proof = tracer.generate_proof()
+    print(f"Proof: {proof.hash}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const analyze = async (inputs: { data: string }) => {
+      return { result: "analysis complete", inputs };
+    };
+    
+    sdk.registerFunction(analyze);
+    
+    const { result, proof } = await sdk.executeWithIntegrityProof("analyze", {
+      data: "sample",
+    });
+    
+    console.log("Result:", result);
+    console.log("Proof:", proof);
+    ```
+  </Tab>
+</Tabs>
 
 ## Verifying Proofs
 
-```python
-# Verify an execution proof
-is_valid = sdk.verify_process_integrity(
-    proof=proof,
-    expected_output_hash=output_hash
-)
-
-if is_valid:
-    print("✅ Execution verified")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Verify an execution proof
+    is_valid = sdk.verify_process_integrity(
+        proof=proof,
+        expected_output_hash=output_hash
+    )
+    
+    if is_valid:
+        print("✅ Execution verified")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    const isValid = await sdk.verifyIntegrityProof(proof);
+    if (isValid) {
+      console.log("✅ Execution verified");
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Integration with DKG
 

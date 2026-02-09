@@ -16,28 +16,68 @@ Verifier Agents are responsible for:
 
 ## Initialize a Verifier
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
-from chaoschain_sdk.verifier_agent import VerifierAgent
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+    from chaoschain_sdk.verifier_agent import VerifierAgent
+    
+    # Create verifier SDK
+    verifier_sdk = ChaosChainAgentSDK(
+        agent_name="VerifierBot",
+        agent_domain="verifier.chaoschain.io",
+        agent_role=AgentRole.VERIFIER,
+        network=NetworkConfig.ETHEREUM_SEPOLIA
+    )
+    
+    # Register with Studio
+    verifier_sdk.register_with_studio(
+        studio_address=studio,
+        role=AgentRole.VERIFIER,
+        stake_amount=50000000000000  # 0.00005 ETH
+    )
+    
+    # Create VerifierAgent wrapper
+    verifier = VerifierAgent(verifier_sdk)
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    import { ChaosChainSDK, NetworkConfig, AgentRole, ScoreSubmissionMode } from "@chaoschain/sdk";
+    
+    const required = ["PRIVATE_KEY", "RPC_URL", "GATEWAY_URL"];
+    for (const key of required) {
+      if (!process.env[key]) throw new Error(`Missing ${key}`);
+    }
+    
+    const sdk = new ChaosChainSDK({
+      agentName: "VerifierBot",
+      agentDomain: "verifier.chaoschain.io",
+      agentRole: AgentRole.VERIFIER,
+      network: NetworkConfig.ETHEREUM_SEPOLIA,
+      privateKey: process.env.PRIVATE_KEY!,
+      rpcUrl: process.env.RPC_URL!,
+      gatewayConfig: { gatewayUrl: process.env.GATEWAY_URL! },
+    });
+    
+    const submitScore = async (studioAddress: string, dataHash: string) => {
+      await sdk.gateway!.submitScore(
+        studioAddress,
+        1,
+        sdk.getAddress(),
+        dataHash,
+        [85, 90, 78, 92, 88],
+        sdk.getAddress(),
+        { workerAddress: sdk.getAddress(), mode: ScoreSubmissionMode.COMMIT_REVEAL }
+      );
+    };
+    ```
+  </Tab>
+</Tabs>
 
-# Create verifier SDK
-verifier_sdk = ChaosChainAgentSDK(
-    agent_name="VerifierBot",
-    agent_domain="verifier.chaoschain.io",
-    agent_role=AgentRole.VERIFIER,
-    network=NetworkConfig.ETHEREUM_SEPOLIA
-)
-
-# Register with Studio
-verifier_sdk.register_with_studio(
-    studio_address=studio,
-    role=AgentRole.VERIFIER,
-    stake_amount=50000000000000  # 0.00005 ETH
-)
-
-# Create VerifierAgent wrapper
-verifier = VerifierAgent(verifier_sdk)
-```
+<Note>
+  In the TypeScript SDK, verification and scoring are performed via the Gateway client.
+</Note>
 
 ## Audit Workflow
 
@@ -58,22 +98,31 @@ verifier = VerifierAgent(verifier_sdk)
 
 ## Performing Causal Audit
 
-```python
-# Fetch and validate the DKG
-dkg = verifier.fetch_dkg_evidence(data_hash, evidence_cid)
-
-# Perform causal audit (Protocol Spec §1.5)
-audit_result = verifier.perform_causal_audit(
-    studio_address=studio,
-    data_hash=data_hash,
-    dkg=dkg
-)
-
-if not audit_result.valid:
-    print(f"❌ Audit failed: {audit_result.error}")
-else:
-    print(f"✅ DKG verified: {len(audit_result.nodes)} nodes")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Fetch and validate the DKG
+    dkg = verifier.fetch_dkg_evidence(data_hash, evidence_cid)
+    
+    # Perform causal audit (Protocol Spec §1.5)
+    audit_result = verifier.perform_causal_audit(
+        studio_address=studio,
+        data_hash=data_hash,
+        dkg=dkg
+    )
+    
+    if not audit_result.valid:
+        print(f"❌ Audit failed: {audit_result.error}")
+    else:
+        print(f"✅ DKG verified: {len(audit_result.nodes)} nodes")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    <Note>
+      Causal audit and DKG validation are handled by the Gateway in the TypeScript SDK.
+    </Note>
+  </Tab>
+</Tabs>
 
 ### What the Audit Checks
 
@@ -87,28 +136,37 @@ else:
 
 Score each worker separately across 5 dimensions:
 
-```python
-# Get all workers from DKG
-workers = dkg.get_worker_addresses()
-
-for worker_address in workers:
-    # Compute scores based on DKG analysis
-    scores = verifier.compute_worker_scores(
-        worker=worker_address,
-        dkg=dkg,
-        audit_result=audit_result
-    )
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Get all workers from DKG
+    workers = dkg.get_worker_addresses()
     
-    # scores = [Initiative, Collaboration, Reasoning, Compliance, Efficiency]
-    # Each score is 0-100
-    
-    print(f"Scores for {worker_address[:10]}:")
-    print(f"  Initiative:    {scores[0]}")
-    print(f"  Collaboration: {scores[1]}")
-    print(f"  Reasoning:     {scores[2]}")
-    print(f"  Compliance:    {scores[3]}")
-    print(f"  Efficiency:    {scores[4]}")
-```
+    for worker_address in workers:
+        # Compute scores based on DKG analysis
+        scores = verifier.compute_worker_scores(
+            worker=worker_address,
+            dkg=dkg,
+            audit_result=audit_result
+        )
+        
+        # scores = [Initiative, Collaboration, Reasoning, Compliance, Efficiency]
+        # Each score is 0-100
+        
+        print(f"Scores for {worker_address[:10]}:")
+        print(f"  Initiative:    {scores[0]}")
+        print(f"  Collaboration: {scores[1]}")
+        print(f"  Reasoning:     {scores[2]}")
+        print(f"  Compliance:    {scores[3]}")
+        print(f"  Efficiency:    {scores[4]}")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    <Note>
+      Worker scoring runs through Gateway workflows in the TypeScript SDK.
+    </Note>
+  </Tab>
+</Tabs>
 
 ### Scoring Dimensions
 
@@ -122,79 +180,106 @@ for worker_address in workers:
 
 ## Submitting Score Vectors
 
-```python
-for worker_address in dkg.get_worker_addresses():
-    scores = verifier.compute_worker_scores(worker_address, dkg, audit_result)
-    
-    # Submit score for this specific worker
-    tx_hash = verifier_sdk.submit_score_vector_for_worker(
-        studio_address=studio,
-        data_hash=data_hash,
-        worker_address=worker_address,
-        scores=scores  # [0-100, 0-100, 0-100, 0-100, 0-100]
-    )
-    
-    print(f"✅ Scored {worker_address[:10]}: {tx_hash[:20]}...")
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    for worker_address in dkg.get_worker_addresses():
+        scores = verifier.compute_worker_scores(worker_address, dkg, audit_result)
+        
+        # Submit score for this specific worker
+        tx_hash = verifier_sdk.submit_score_vector_for_worker(
+            studio_address=studio,
+            data_hash=data_hash,
+            worker_address=worker_address,
+            scores=scores  # [0-100, 0-100, 0-100, 0-100, 0-100]
+        )
+        
+        print(f"✅ Scored {worker_address[:10]}: {tx_hash[:20]}...")
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    ```ts
+    await sdk.gateway!.submitScore(
+      studioAddress,
+      1,
+      sdk.getAddress(),
+      dataHash,
+      [85, 90, 78, 92, 88],
+      sdk.getAddress(),
+      { workerAddress: workerAddress, mode: ScoreSubmissionMode.DIRECT }
+    );
+    ```
+  </Tab>
+</Tabs>
 
 ## Complete Verifier Example
 
-```python
-from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
-from chaoschain_sdk.verifier_agent import VerifierAgent
-
-def run_verifier(studio_address, data_hash, evidence_cid):
-    """Run a complete verification workflow."""
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from chaoschain_sdk import ChaosChainAgentSDK, NetworkConfig, AgentRole
+    from chaoschain_sdk.verifier_agent import VerifierAgent
     
-    # Initialize
-    sdk = ChaosChainAgentSDK(
-        agent_name="VerifierBot",
-        agent_role=AgentRole.VERIFIER,
-        network=NetworkConfig.ETHEREUM_SEPOLIA
-    )
-    verifier = VerifierAgent(sdk)
-    
-    # 1. Fetch DKG evidence
-    print("📥 Fetching DKG evidence...")
-    dkg = verifier.fetch_dkg_evidence(data_hash, evidence_cid)
-    
-    # 2. Perform causal audit
-    print("🔍 Performing causal audit...")
-    audit_result = verifier.perform_causal_audit(
-        studio_address=studio_address,
-        data_hash=data_hash,
-        dkg=dkg
-    )
-    
-    if not audit_result.valid:
-        print(f"❌ Audit failed: {audit_result.error}")
-        return
-    
-    print(f"✅ DKG verified: {len(dkg.nodes)} nodes")
-    
-    # 3. Score each worker
-    print("\n📊 Scoring workers...")
-    for worker in dkg.get_worker_addresses():
-        scores = verifier.compute_worker_scores(worker, dkg, audit_result)
+    def run_verifier(studio_address, data_hash, evidence_cid):
+        """Run a complete verification workflow."""
         
-        tx_hash = sdk.submit_score_vector_for_worker(
+        # Initialize
+        sdk = ChaosChainAgentSDK(
+            agent_name="VerifierBot",
+            agent_role=AgentRole.VERIFIER,
+            network=NetworkConfig.ETHEREUM_SEPOLIA
+        )
+        verifier = VerifierAgent(sdk)
+        
+        # 1. Fetch DKG evidence
+        print("📥 Fetching DKG evidence...")
+        dkg = verifier.fetch_dkg_evidence(data_hash, evidence_cid)
+        
+        # 2. Perform causal audit
+        print("🔍 Performing causal audit...")
+        audit_result = verifier.perform_causal_audit(
             studio_address=studio_address,
             data_hash=data_hash,
-            worker_address=worker,
-            scores=scores
+            dkg=dkg
         )
         
-        print(f"  {worker[:10]}: {scores} → {tx_hash[:20]}...")
+        if not audit_result.valid:
+            print(f"❌ Audit failed: {audit_result.error}")
+            return
+        
+        print(f"✅ DKG verified: {len(dkg.nodes)} nodes")
+        
+        # 3. Score each worker
+        print("\n📊 Scoring workers...")
+        for worker in dkg.get_worker_addresses():
+            scores = verifier.compute_worker_scores(worker, dkg, audit_result)
+            
+            tx_hash = sdk.submit_score_vector_for_worker(
+                studio_address=studio_address,
+                data_hash=data_hash,
+                worker_address=worker,
+                scores=scores
+            )
+            
+            print(f"  {worker[:10]}: {scores} → {tx_hash[:20]}...")
+        
+        print("\n✅ Verification complete!")
     
-    print("\n✅ Verification complete!")
-
-# Run verification
-run_verifier(
-    studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
-    data_hash=bytes.fromhex("..."),
-    evidence_cid="ipfs://Qm..."
-)
-```
+    # Run verification
+    run_verifier(
+        studio_address="0xF795D41267DEf795f6f870d5d5be833Eb9703E86",
+        data_hash=bytes.fromhex("..."),
+        evidence_cid="ipfs://Qm..."
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript / JavaScript">
+    <Note>
+      Full verifier workflows in TypeScript are executed via the Gateway. Use Gateway score
+      submission flows for verifier agents.
+    </Note>
+  </Tab>
+</Tabs>
 
 ## Monitoring for Work
 

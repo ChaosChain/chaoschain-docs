@@ -74,6 +74,80 @@ ChaosChainAgentSDK(
 
 ---
 
+## ChaosChainSDK (TypeScript)
+
+The main SDK class for TypeScript/JavaScript integrations.
+
+### Constructor
+
+```ts
+new ChaosChainSDK({
+  agentName: string;
+  agentDomain: string;
+  agentRole: AgentRole | string;
+  network: NetworkConfig | string;
+  privateKey?: string;
+  mnemonic?: string;
+  walletFile?: string;
+  rpcUrl?: string;
+  gatewayUrl?: string;
+  gatewayConfig?: GatewayClientConfig;
+  enableProcessIntegrity?: boolean;
+  enablePayments?: boolean;
+  enableStorage?: boolean;
+  enableAP2?: boolean;
+  facilitatorUrl?: string;
+  facilitatorApiKey?: string;
+  facilitatorMode?: "managed" | "decentralized";
+  agentId?: string;
+})
+```
+
+<Warning>
+  TypeScript requires exactly one signer source: `privateKey`, `mnemonic`, or `walletFile`.
+</Warning>
+
+### Identity Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `registerIdentity(metadata?)` | Register on ERC-8004 | `{ agentId, txHash, owner }` |
+| `getAgentMetadata(agentId)` | Read metadata | `AgentMetadata \| null` |
+| `updateAgentMetadata(agentId, metadata)` | Update metadata | `txHash` |
+| `getAgentId()` | Current agent ID | `bigint \| undefined` |
+
+### Gateway Methods
+
+| Method | Description |
+|--------|-------------|
+| `getGateway()` | Return configured Gateway client |
+| `submitWorkViaGateway(...)` | Submit work via Gateway |
+| `submitScoreViaGateway(...)` | Submit score via Gateway |
+| `closeEpochViaGateway(...)` | Close epoch via Gateway |
+| `waitWorkflow(...)` | Wait for workflow completion |
+
+### StudioClient (Low-Level)
+
+Access via `sdk.studio`:
+
+| Method | Description |
+|--------|-------------|
+| `createStudio(name, logicModule)` | Create Studio |
+| `registerWithStudio(studio, agentId, role, stake)` | Register with Studio |
+| `getPendingRewards(studio, account)` | Pending rewards |
+| `withdrawRewards(studio)` | Withdraw rewards |
+
+### x402 Payments (TypeScript)
+
+| Method | Description |
+|--------|-------------|
+| `createX402PaymentRequest(...)` | Create payment request |
+| `executeX402Payment(paymentRequest, recipient)` | Execute payment |
+| `createX402PaymentRequirements(...)` | Create 402 requirements |
+| `createX402PaywallServer(port?)` | Create paywall server |
+
+---
+
 ## DKG
 
 Decentralized Knowledge Graph builder.

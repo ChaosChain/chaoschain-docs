@@ -1,0 +1,38 @@
+---
+title: "Supported Networks"
+description: "Networks supported by the ChaosChain SDKs"
+---
+
+The TypeScript SDK supports the following networks. Use these `NetworkConfig` values explicitly and provide a deterministic `rpcUrl` for production.
+
+## Network List
+
+| Network | Type | NetworkConfig |
+| --- | --- | --- |
+| Ethereum Mainnet | Mainnet | `ETHEREUM_MAINNET` |
+| Ethereum Sepolia | Testnet | `ETHEREUM_SEPOLIA` |
+| Base Mainnet | Mainnet | `BASE_MAINNET` |
+| Base Sepolia | Testnet | `BASE_SEPOLIA` |
+| Polygon Mainnet | Mainnet | `POLYGON_MAINNET` |
+| Polygon Amoy | Testnet | `POLYGON_AMOY` |
+| Arbitrum Mainnet | Mainnet | `ARBITRUM_MAINNET` |
+| Arbitrum Testnet (Sepolia) | Testnet | `ARBITRUM_TESTNET` |
+| Celo Mainnet | Mainnet | `CELO_MAINNET` |
+| Celo Testnet (Alfajores) | Testnet | `CELO_TESTNET` |
+| Gnosis Mainnet | Mainnet | `GNOSIS_MAINNET` |
+| Scroll Mainnet | Mainnet | `SCROLL_MAINNET` |
+| Scroll Testnet (Sepolia) | Testnet | `SCROLL_TESTNET` |
+| Taiko Mainnet | Mainnet | `TAIKO_MAINNET` |
+| Monad Mainnet | Mainnet | `MONAD_MAINNET` |
+| Monad Testnet | Testnet | `MONAD_TESTNET` |
+| BSC Mainnet | Mainnet | `BSC_MAINNET` |
+| BSC Testnet | Testnet | `BSC_TESTNET` |
+| Local | Dev | `LOCAL` |
+
+<Info>
+  **Monad is env-driven**: `MONAD_MAINNET_CHAIN_ID` / `MONAD_TESTNET_CHAIN_ID` and corresponding RPC URLs must be set in your environment.
+</Info>
+
+<Warning>
+  Networks not listed above are not supported by the TypeScript SDK.
+</Warning>
