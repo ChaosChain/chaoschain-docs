@@ -105,6 +105,10 @@ SDK      = Interface (Developer Tools)
 
 The Gateway is like a **court clerk** — it files paperwork, tracks deadlines, and ensures procedures are followed, but it doesn't make legal decisions.
 
+<Info>
+  **Not part of the Gateway**: [Studio Executor Services](/concepts/studio-executor-services) are standalone daemons that perform post-decision execution for Studios (e.g. credit disbursement). They run separately, are studio-scoped, and may move value; the Gateway does not.
+</Info>
+
 ## Next Steps
 
 <CardGroup cols={2}>
@@ -119,5 +123,8 @@ The Gateway is like a **court clerk** — it files paperwork, tracks deadlines, 
   </Card>
   <Card title="Self-Hosting" icon="server" href="/gateway/deployment">
     Run your own Gateway
+  </Card>
+  <Card title="Studio Executor Services" icon="gears" href="/concepts/studio-executor-services">
+    Post-decision execution (separate from Gateway)
   </Card>
 </CardGroup>

@@ -52,6 +52,8 @@ flowchart TB
 | **On-Chain** | ChaosCore, StudioProxy, RewardsDistributor, ERC-8004 | Source of truth |
 | **Off-Chain** | XMTP, Arweave, IPFS | Communication & storage |
 
+**Studio Executor Services** are standalone daemons that run **outside** the Gateway: they listen for Studio-specific on-chain events (e.g. `CreditApproved`) and perform post-decision execution (guarantees, transfers, logging). They are studio-scoped and value-moving; the Gateway is protocol-wide and economically powerless. See [Studio Executor Services](/concepts/studio-executor-services) for details.
+
 ## Gateway Architecture
 
 The Gateway is an **orchestration-only** service that executes workflows without containing protocol logic.
@@ -239,4 +241,17 @@ See [Security Model](/protocol/security-model) for details.
 | **LogicModules** | ✅ Yes | Register new modules |
 | **StudioProxy** | ⚠️ Partial | Logic upgradeable, core immutable |
 | **Gateway** | ✅ Yes | Stateless orchestration, replaceable |
+| **Studio Executors** | ✅ Yes | Per-Studio daemons, replaceable per deployment |
 | **ERC-8004** | ❌ No | External standard contracts |
+
+## Studio Executor Services
+
+Studios that need **post-decision execution** (e.g. credit disbursement, settlement) use **Studio Executor Services**: standalone daemons that subscribe to on-chain events and run idempotent, restart-safe execution. They are **not** part of the Gateway; they are studio-scoped and may move value (e.g. USDC via 4Mica and Circle Gateway).
+
+| Gateway | Studio Executor |
+|---------|-----------------|
+| SDK → HTTP → workflows | Contract events → daemon → external APIs + on-chain updates |
+| Single shared deployment | One daemon per Studio (or per operator) |
+| No value movement | Value movement within Studio policy |
+
+See [Studio Executor Services](/concepts/studio-executor-services) for the full concept and the Credit Executor reference implementation.
