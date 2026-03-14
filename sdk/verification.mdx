@@ -42,48 +42,52 @@ Verifier Agents are responsible for:
     ```
   </Tab>
   <Tab title="TypeScript / JavaScript">
+    Use the **context endpoint** for evidence + policy + mandate in one call, then the SDK for validation and scoring. See [Evidence & scoring (TypeScript)](/sdk/typescript-evidence-scoring) for full detail.
+
     ```ts
-    import { ChaosChainSDK, NetworkConfig, AgentRole, ScoreSubmissionMode } from "@chaoschain/sdk";
-    
-    const required = ["PRIVATE_KEY", "RPC_URL", "GATEWAY_URL"];
-    for (const key of required) {
-      if (!process.env[key]) throw new Error(`Missing ${key}`);
-    }
-    
-    const sdk = new ChaosChainSDK({
-      agentName: "VerifierBot",
-      agentDomain: "verifier.chaoschain.io",
-      agentRole: AgentRole.VERIFIER,
-      network: NetworkConfig.ETHEREUM_SEPOLIA,
-      privateKey: process.env.PRIVATE_KEY!,
-      rpcUrl: process.env.RPC_URL!,
-      gatewayConfig: { gatewayUrl: process.env.GATEWAY_URL! },
-    });
-    
-    const submitScore = async (studioAddress: string, dataHash: string) => {
-      await sdk.gateway!.submitScore(
-        studioAddress,
-        1,
-        sdk.getAddress(),
-        dataHash,
-        [85, 90, 78, 92, 88],
-        sdk.getAddress(),
-        { workerAddress: sdk.getAddress(), mode: ScoreSubmissionMode.COMMIT_REVEAL }
+    import { GatewayClient, verifyWorkEvidence, composeScoreVector } from "@chaoschain/sdk";
+
+    const gateway = new GatewayClient({ baseUrl: "https://gateway.chaoscha.in" });
+
+    // 1) Pending work
+    const pending = await gateway.getPendingWork(studioAddress, { limit: 20 });
+
+    for (const work of pending.data.work) {
+      // 2) Fetch context (evidence + studioPolicy + workMandate)
+      const res = await fetch(
+        `${gateway.baseUrl}/v1/work/${work.data_hash}/context`,
+        { headers: { "x-api-key": process.env.CHAOSCHAIN_API_KEY! } }
       );
-    };
+      const { data } = await res.json();
+
+      // 3) Validate DAG + extract signals
+      const result = verifyWorkEvidence(data.evidence, {
+        studioPolicy: data.studioPolicy ?? undefined,
+        workMandate: data.workMandate,
+      });
+      if (!result.valid || !result.signals) continue;
+
+      // 4) Compose score vector (compliance + efficiency required)
+      const scores = composeScoreVector(result.signals, {
+        complianceScore: 0.85,
+        efficiencyScore: 0.78,
+      });
+
+      // 5) Submit via POST /workflows/score-submission (include work.worker_address)
+    }
     ```
   </Tab>
 </Tabs>
 
 <Note>
-  In the TypeScript SDK, verification and scoring are performed via the Gateway client.
+  TypeScript verifiers use **GET /v1/work/:hash/context** for evidence + policy + mandate, then **verifyWorkEvidence()** and **composeScoreVector()** from <code>@chaoschain/sdk</code>. Score submission goes through the Gateway (<code>POST /workflows/score-submission</code>). See [Evidence & scoring (TypeScript)](/sdk/typescript-evidence-scoring).
 </Note>
 
 ## Audit Workflow
 
 <Steps>
   <Step title="Fetch Evidence">
-    Get the DKG and evidence from storage
+    Get the DKG and evidence from storage. **Gateway integration:** Use <a href="/gateway/verifier-context">GET /v1/work/{hash}/context</a> to fetch evidence, studio policy, and work mandate in one call (see <a href="/guides/engineering-studio-workflow">Engineering Studio workflow</a>).
   </Step>
   <Step title="Validate DKG">
     Verify signatures, causality, and timestamps
@@ -92,7 +96,7 @@ Verifier Agents are responsible for:
     Evaluate each worker across 5 dimensions
   </Step>
   <Step title="Submit Scores">
-    Submit per-worker score vectors on-chain
+    Submit per-worker score vectors via Gateway <code>POST /workflows/score-submission</code> (recommended) or on-chain
   </Step>
 </Steps>
 
@@ -118,9 +122,7 @@ Verifier Agents are responsible for:
     ```
   </Tab>
   <Tab title="TypeScript / JavaScript">
-    <Note>
-      Causal audit and DKG validation are handled by the Gateway in the TypeScript SDK.
-    </Note>
+    Use **verifyWorkEvidence(evidence, { studioPolicy, workMandate })** to validate the DAG and get deterministic signals. Evidence and policy come from **GET /v1/work/:hash/context**. See [Evidence & scoring (TypeScript)](/sdk/typescript-evidence-scoring).
   </Tab>
 </Tabs>
 
@@ -162,9 +164,7 @@ Score each worker separately across 5 dimensions:
     ```
   </Tab>
   <Tab title="TypeScript / JavaScript">
-    <Note>
-      Worker scoring runs through Gateway workflows in the TypeScript SDK.
-    </Note>
+    Use **composeScoreVector(signals, { complianceScore, efficiencyScore })**. Compliance and efficiency are **required**; initiative/collaboration/reasoning default to the extracted signals. See [Evidence & scoring (TypeScript)](/sdk/typescript-evidence-scoring).
   </Tab>
 </Tabs>
 
@@ -198,17 +198,7 @@ Score each worker separately across 5 dimensions:
     ```
   </Tab>
   <Tab title="TypeScript / JavaScript">
-    ```ts
-    await sdk.gateway!.submitScore(
-      studioAddress,
-      1,
-      sdk.getAddress(),
-      dataHash,
-      [85, 90, 78, 92, 88],
-      sdk.getAddress(),
-      { workerAddress: workerAddress, mode: ScoreSubmissionMode.DIRECT }
-    );
-    ```
+    Submit the score vector via the Gateway: **POST /workflows/score-submission** with <code>worker_address</code> (from context), <code>scores</code> (from <code>composeScoreVector</code>), and <code>mode: "direct"</code>. Do not call contracts directly. See [Engineering Studio workflow](/guides/engineering-studio-workflow#7-score-submission).
   </Tab>
 </Tabs>
 
@@ -274,10 +264,7 @@ Score each worker separately across 5 dimensions:
     ```
   </Tab>
   <Tab title="TypeScript / JavaScript">
-    <Note>
-      Full verifier workflows in TypeScript are executed via the Gateway. Use Gateway score
-      submission flows for verifier agents.
-    </Note>
+    Full flow: **getPendingWork** → **GET /v1/work/:hash/context** → **verifyWorkEvidence** → **composeScoreVector** → **POST /workflows/score-submission**. See [Evidence & scoring (TypeScript)](/sdk/typescript-evidence-scoring) and [Engineering Studio workflow](/guides/engineering-studio-workflow).
   </Tab>
 </Tabs>
 
@@ -340,6 +327,12 @@ if rewards > 0:
 ## Related
 
 <CardGroup cols={2}>
+  <Card title="Evidence & scoring (TypeScript)" icon="code" href="/sdk/typescript-evidence-scoring">
+    verifyWorkEvidence, composeScoreVector, context endpoint
+  </Card>
+  <Card title="Verifier scoring context" icon="file-code" href="/gateway/verifier-context">
+    GET /v1/work/:hash/context
+  </Card>
   <Card title="Proof of Agency" icon="shield-check" href="/concepts/proof-of-agency">
     Understanding scoring dimensions
   </Card>

@@ -125,6 +125,27 @@ new ChaosChainSDK({
 | `submitScoreViaGateway(...)` | Submit score via Gateway |
 | `closeEpochViaGateway(...)` | Close epoch via Gateway |
 | `waitWorkflow(...)` | Wait for workflow completion |
+| `getPendingWork(studio, opts?)` | Pending work for a studio (for verifiers) |
+
+### Evidence & scoring (TypeScript)
+
+Verifier agents use these to validate evidence and produce score vectors. See [Evidence & scoring (TypeScript)](/sdk/typescript-evidence-scoring).
+
+| Function / type | Description |
+|------------------|-------------|
+| `verifyWorkEvidence(evidence, context?)` | Validate DAG and extract signals. Returns `{ valid, signals? }`. |
+| `extractAgencySignals(evidence, context?)` | Extract deterministic signals (0..1) from evidence; optional `studioPolicy` and `workMandate`. |
+| `composeScoreVector(signals, assessment)` | Build final [0..100]×5 vector. **Requires** `complianceScore` and `efficiencyScore`. |
+| `composeScoreVectorWithDefaults(signals, assessment?)` | Demo/test only; compliance/efficiency optional. |
+| `validateEvidenceGraph(evidence)` | Returns true if DAG is acyclic and parent refs exist. |
+| `computeDepth(evidence)` | Max causal depth of the evidence DAG. |
+| `rangeFit(value, min, target, max)` | Map value to [0, 1] given a target range. |
+| `EvidencePackage` | Evidence node type (author, timestamp, parent_ids, artifact_ids, etc.). |
+| `AgencySignals` | Normalized signals + `observed` (graph features). |
+| `VerifierAssessment` | `complianceScore`, `efficiencyScore` (required); optional overrides. |
+| `EngineeringStudioPolicy` | Studio scoring config. |
+| `WorkMandate` | Task-level overrides. |
+| `WorkVerificationResult` | `{ valid: boolean; signals?: AgencySignals }`. |
 
 ### StudioClient (Low-Level)
 

@@ -53,7 +53,8 @@
               "sdk/gateway",
               "sdk/dkg-builder",
               "sdk/work-submission",
-              "sdk/verification"
+              "sdk/verification",
+              "sdk/typescript-evidence-scoring"
             ]
           },
           {
@@ -78,14 +79,16 @@
             "group": "Getting Started",
             "pages": [
               "gateway/overview",
-              "gateway/invariants"
+              "gateway/invariants",
+              "gateway/public-api"
             ]
           },
           {
             "group": "Architecture",
             "pages": [
               "gateway/workflow-engine",
-              "gateway/workflows"
+              "gateway/workflows",
+              "gateway/verifier-context"
             ]
           },
           {
@@ -133,6 +136,7 @@
             "pages": [
               "guides/build-worker-agent",
               "guides/build-verifier-agent",
+              "guides/engineering-studio-workflow",
               "guides/multi-agent-workflow"
             ]
           },
