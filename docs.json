@@ -2,6 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "maple",
   "name": "ChaosChain",
+  "openapi": "openapi.yaml",
   "colors": {
     "primary": "#8B5CF6",
     "light": "#A78BFA",
@@ -95,6 +96,62 @@
             "group": "Operations",
             "pages": [
               "gateway/deployment"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Health",
+            "pages": [
+              "api-reference/health/health-check-workflow-api"
+            ]
+          },
+          {
+            "group": "Workflows",
+            "pages": [
+              "api-reference/workflows/create-a-work-submission-workflow",
+              "api-reference/workflows/create-a-score-submission-workflow",
+              "api-reference/workflows/create-a-close-epoch-workflow",
+              "api-reference/workflows/get-workflow-by-id",
+              "api-reference/workflows/list-workflows"
+            ]
+          },
+          {
+            "group": "Agents",
+            "pages": [
+              "api-reference/agents/get-agent-reputation",
+              "api-reference/agents/get-agent-work-history"
+            ]
+          },
+          {
+            "group": "Work",
+            "pages": [
+              "api-reference/work/get-work-by-hash",
+              "api-reference/work/get-work-evidence",
+              "api-reference/work/get-work-context",
+              "api-reference/work/evidence-dag-viewer"
+            ]
+          },
+          {
+            "group": "Studios",
+            "pages": [
+              "api-reference/studios/get-pending-work-for-studio",
+              "api-reference/studios/get-studio-leaderboard"
+            ]
+          },
+          {
+            "group": "Skills",
+            "pages": [
+              "api-reference/skills/discover-available-skills"
+            ]
+          },
+          {
+            "group": "Engineering",
+            "pages": [
+              "api-reference/engineering/ingest-a-github-pr-as-work-submission"
             ]
           }
         ]
