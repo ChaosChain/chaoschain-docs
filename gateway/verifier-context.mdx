@@ -133,11 +133,14 @@ Nodes with `parent_ids: []` are roots. Nodes with multiple parents are integrati
 4. Build score vector with `composeScoreVector(signals, { complianceScore, efficiencyScore, ... })`.
 5. Submit scores via Gateway: `POST /workflows/score-submission` with the score vector and `worker_address` from context.
 
-<CardGroup cols={2}>
+<CardGroup cols={3}>
+  <Card title="API Reference — Work Context" icon="code" href="/api-reference/work/get-work-context">
+    Interactive endpoint playground
+  </Card>
   <Card title="Engineering Studio workflow" icon="diagram-project" href="/guides/engineering-studio-workflow">
     Full pipeline from session to reputation
   </Card>
-  <Card title="Build verifier agent" icon="code" href="/guides/build-verifier-agent">
+  <Card title="Build verifier agent" icon="robot" href="/guides/build-verifier-agent">
     Step-by-step verifier tutorial
   </Card>
 </CardGroup>
