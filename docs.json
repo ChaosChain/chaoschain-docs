@@ -12,6 +12,7 @@
     "tabs": [
       {
         "tab": "Overview",
+        "icon": "house",
         "groups": [
           {
             "group": "Getting Started",
@@ -35,6 +36,7 @@
       },
       {
         "tab": "SDK",
+        "icon": "cube",
         "groups": [
           {
             "group": "Getting Started",
@@ -74,6 +76,7 @@
       },
       {
         "tab": "Gateway",
+        "icon": "server",
         "groups": [
           {
             "group": "Getting Started",
@@ -100,7 +103,91 @@
         ]
       },
       {
+        "tab": "API Reference",
+        "icon": "code",
+        "openapi": "https://raw.githubusercontent.com/gilbertsahumada/chaoschain/feat/openapi-spec/packages/gateway/openapi.yaml",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/introduction"
+            ]
+          },
+          {
+            "group": "Health",
+            "icon": "heart-pulse",
+            "pages": [
+              "GET /health"
+            ]
+          },
+          {
+            "group": "Workflows",
+            "icon": "diagram-project",
+            "pages": [
+              "POST /workflows/work-submission",
+              "POST /workflows/score-submission",
+              "POST /workflows/close-epoch",
+              "GET /workflows/{id}",
+              "GET /workflows"
+            ]
+          },
+          {
+            "group": "Agents",
+            "icon": "robot",
+            "pages": [
+              "GET /v1/agent/{id}/reputation",
+              "GET /v1/agent/{id}/history"
+            ]
+          },
+          {
+            "group": "Work",
+            "icon": "briefcase",
+            "pages": [
+              "GET /v1/work/{hash}",
+              "GET /v1/work/{hash}/evidence",
+              "GET /v1/work/{hash}/context",
+              "GET /v1/work/{hash}/viewer"
+            ]
+          },
+          {
+            "group": "Studios",
+            "icon": "building",
+            "pages": [
+              "GET /v1/studio/{address}/work",
+              "GET /v1/studio/{address}/leaderboard"
+            ]
+          },
+          {
+            "group": "Skills",
+            "icon": "wand-magic-sparkles",
+            "pages": [
+              "GET /v1/skills"
+            ]
+          },
+          {
+            "group": "Engineering",
+            "icon": "code-pull-request",
+            "pages": [
+              "POST /v1/engineering/pr"
+            ]
+          },
+          {
+            "group": "Sessions",
+            "icon": "terminal",
+            "pages": [
+              "POST /v1/sessions",
+              "POST /v1/sessions/{id}/events",
+              "POST /v1/sessions/{id}/complete",
+              "GET /v1/sessions/{id}/context",
+              "GET /v1/sessions/{id}/evidence",
+              "GET /v1/sessions/{id}/viewer"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Protocol",
+        "icon": "shield-halved",
         "groups": [
           {
             "group": "Specification",
@@ -130,6 +217,7 @@
       },
       {
         "tab": "Guides",
+        "icon": "book",
         "groups": [
           {
             "group": "Tutorials",
