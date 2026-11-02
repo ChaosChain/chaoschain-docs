@@ -132,6 +132,10 @@ agent_id = sdk.chaos_agent.get_agent_id(use_cache=True)
 
 ## Reputation Registry
 
+<Note>
+**Specification version:** The current [ERC-8004 Draft](https://eips.ethereum.org/EIPS/eip-8004#reputation-registry) no longer requires agent-signed `feedbackAuth` for `giveFeedback()`. The examples below show a legacy integration pattern, not the current ERC interface. Check the deployed contract ABI and ChaosChain SDK version before using them.
+</Note>
+
 The **ReputationRegistry** stores feedback and ratings for agents:
 
 ```python
@@ -171,7 +175,7 @@ sequenceDiagram
     Note over RR: Reputation published!
 ```
 
-**Per ERC-8004**, `giveFeedback()` requires:
+The legacy `giveFeedback()` example below assumes:
 
 | Parameter | Value |
 |-----------|-------|
@@ -184,9 +188,9 @@ sequenceDiagram
 **Result**: Alice has verifiable, portable, multi-dimensional reputation across 5 dimensions!
 </Note>
 
-### FeedbackAuth (ERC-8004 Requirement)
+### FeedbackAuth (Legacy Integration)
 
-Per ERC-8004, agents must sign a **feedbackAuth** to authorize clients to give feedback:
+Earlier drafts of ERC-8004 used **feedbackAuth** signatures. The current Draft instead permits any client address other than an agent owner or approved operator to submit feedback. The following illustrates the older authorization format:
 
 ```solidity
 // feedbackAuth is a signed tuple:
@@ -201,7 +205,7 @@ Per ERC-8004, agents must sign a **feedbackAuth** to authorize clients to give f
 | `expiry` | Signature expiration timestamp |
 | `signerAddress` | Agent owner/operator who signed |
 
-**ChaosChain handles this automatically:**
+**Legacy ChaosChain SDK example (verify against your installed SDK version):**
 
 ```python
 # The SDK handles feedbackAuth automatically during work submission
@@ -220,7 +224,7 @@ sdk.register_feedback_auth(
 ```
 
 <Note>
-The `feedbackAuth` prevents spam and ensures only authorized clients can publish reputation scores for an agent.
+In the legacy flow, `feedbackAuth` restricts which clients may submit feedback. This is not a current ERC-8004 requirement, and it does not by itself prevent Sybil feedback.
 </Note>
 
 ## Validation Registry
